@@ -1,17 +1,31 @@
+// prisma/seed.js
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Seeding database...");
+  console.log("🌱 Starting database seed...");
 
-  // 🧹 Clear existing data (optional)
+  // 🧹 Cleanup (only for dev use)
   await prisma.comment.deleteMany();
   await prisma.post.deleteMany();
   await prisma.category.deleteMany();
   await prisma.author.deleteMany();
+  await prisma.user.deleteMany();
 
-  // 👩‍💻 Create authors
+  // 👑 Create admin user
+  const hashedPassword = await bcrypt.hash("admin123", 10);
+  const admin = await prisma.user.create({
+    data: {
+      email: "admin@newsprk.com",
+      password: hashedPassword,
+      role: "admin",
+    },
+  });
+  console.log(`✅ Created admin: ${admin.email}`);
+
+  // 👩‍💻 Authors
   const authors = await prisma.author.createMany({
     data: [
       {
@@ -24,82 +38,103 @@ async function main() {
         bio: "Lifestyle writer covering travel, food, and fashion.",
         avatarUrl: "https://randomuser.me/api/portraits/women/65.jpg",
       },
+      {
+        name: "Alex Johnson",
+        bio: "Business and finance columnist, passionate about startups.",
+        avatarUrl: "https://randomuser.me/api/portraits/men/78.jpg",
+      },
     ],
   });
+  console.log("✅ Created 3 authors");
 
-  console.log(`✅ Created ${authors.count} authors`);
-
-  // 🏷️ Create categories
+  // 🏷️ Categories
   const categories = await prisma.category.createMany({
     data: [
+      { name: "Trending", slug: "trending" },
       { name: "Technology", slug: "technology" },
       { name: "Business", slug: "business" },
-      { name: "Entertainment", slug: "entertainment" },
       { name: "Sports", slug: "sports" },
+      { name: "Entertainment", slug: "entertainment" },
+      { name: "Videos", slug: "videos" },
+      { name: "News", slug: "news" },
     ],
+    skipDuplicates: true,
   });
+  console.log("✅ Created 7 categories");
 
-  console.log(`✅ Created ${categories.count} categories`);
+  // 🧭 Fetch references
+  const authorList = await prisma.author.findMany();
+  const categoryList = await prisma.category.findMany();
 
-  // 📰 Create posts
-  const author1 = await prisma.author.findFirst({ where: { name: "John Doe" } });
-  const author2 = await prisma.author.findFirst({ where: { name: "Jane Smith" } });
+  // 📰 Sample content generator
+  const sampleContent = `
+    <p>Artificial Intelligence continues to evolve with breakthroughs in generative models, robotics, and real-time translation systems.</p>
+    <p>From natural language processing to computer vision, the AI landscape is rapidly transforming industries worldwide.</p>
+    <p>Experts predict a surge in ethical AI frameworks and advanced edge computing in 2025.</p>
+  `;
 
-  const techCategory = await prisma.category.findFirst({ where: { slug: "technology" } });
-  const businessCategory = await prisma.category.findFirst({ where: { slug: "business" } });
+  // 📸 Random images for variety
+  const imageTopics = [
+    "technology",
+    "ai",
+    "sports",
+    "business",
+    "entertainment",
+    "news",
+    "office",
+    "media",
+    "innovation",
+  ];
 
-  await prisma.post.createMany({
-    data: [
-      {
-        title: "AI Revolution in 2025",
-        slug: "ai-revolution-2025",
-        excerpt: "The year 2025 marks the next wave of artificial intelligence advancements.",
-        content:
-          "Artificial Intelligence continues to evolve with breakthroughs in generative models, robotics, and real-time translation systems.",
-        imageUrl: "https://source.unsplash.com/800x400/?technology,ai",
-        authorId: author1.id,
-        categoryId: techCategory.id,
-        publishedAt: new Date(),
-      },
-      {
-        title: "The Rise of Remote Work Culture",
-        slug: "rise-of-remote-work",
-        excerpt: "How global companies are adapting to a hybrid workforce model.",
-        content:
-          "The shift to remote work has changed how we collaborate, hire, and measure productivity. Here's how businesses are evolving.",
-        imageUrl: "https://source.unsplash.com/800x400/?office,remote-work",
-        authorId: author2.id,
-        categoryId: businessCategory.id,
-        publishedAt: new Date(),
-      },
-    ],
-  });
+  // 🧩 Create 5 posts per category
+  let postCount = 0;
+  for (const category of categoryList) {
+    for (let i = 1; i <= 5; i++) {
+      const randomAuthor =
+        authorList[Math.floor(Math.random() * authorList.length)];
+      const randomImage =
+        imageTopics[Math.floor(Math.random() * imageTopics.length)];
+      await prisma.post.create({
+        data: {
+          title: `${category.name} Insight ${i}`,
+          slug: `${category.slug}-insight-${i}`,
+          excerpt: `An overview of ${category.name.toLowerCase()} trends in 2025.`,
+          content: sampleContent,
+          imageUrl: `https://source.unsplash.com/800x400/?${randomImage}`,
+          authorId: randomAuthor.id,
+          categoryId: category.id,
+          publishedAt: new Date(),
+        },
+      });
+      postCount++;
+    }
+  }
 
-  console.log("✅ Created sample posts");
+  console.log(`✅ Created ${postCount} sample posts`);
 
-  // 💬 Create comments
-  const post1 = await prisma.post.findFirst({ where: { slug: "ai-revolution-2025" } });
-  const post2 = await prisma.post.findFirst({ where: { slug: "rise-of-remote-work" } });
-
-  await prisma.comment.createMany({
-    data: [
-      {
-        postId: post1.id,
-        name: "Michael",
-        email: "michael@example.com",
-        content: "Great insights! Excited about the AI future.",
-      },
-      {
-        postId: post2.id,
-        name: "Sophie",
-        email: "sophie@example.com",
-        content: "Remote work has truly changed my life for the better.",
-      },
-    ],
-  });
+  // 💬 Add random comments
+  const allPosts = await prisma.post.findMany();
+  for (const post of allPosts.slice(0, 10)) {
+    await prisma.comment.createMany({
+      data: [
+        {
+          postId: post.id,
+          name: "Michael",
+          email: "michael@example.com",
+          content: "Fantastic read! Insightful perspective.",
+        },
+        {
+          postId: post.id,
+          name: "Sophie",
+          email: "sophie@example.com",
+          content: "I completely agree with this take!",
+        },
+      ],
+    });
+  }
 
   console.log("✅ Added example comments");
-  console.log("🌿 Seeding completed!");
+  console.log("🌿 Seeding completed successfully!");
 }
 
 main()
@@ -110,3 +145,5 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
+export { main };

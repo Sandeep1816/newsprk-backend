@@ -43,7 +43,7 @@ model Post {
   title       String
   slug        String    @unique
   excerpt     String?
-  content     String
+  content     String    @db.LongText
   imageUrl    String?
   authorId    Int
   categoryId  Int
