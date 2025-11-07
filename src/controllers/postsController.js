@@ -2,12 +2,12 @@
 import prisma from "../prismaClient.js";
 
 /**
- * Query params:
- * - page (default 1)
- * - limit (default 10)
- * - q (search string, searches title/excerpt/content)
- * - category (category slug)
- * - author (author id)
+ * GET /api/posts
+ * Supports:
+ * - ?page, ?limit
+ * - ?q (search)
+ * - ?category (slug)
+ * - ?author (id)
  */
 export const getAllPosts = async (req, res) => {
   try {
@@ -31,22 +31,15 @@ export const getAllPosts = async (req, res) => {
         category
           ? {
               category: {
-                is: {
-                  slug: category,
-                },
+                is: { slug: category },
               },
             }
           : {},
-        author
-          ? {
-              authorId: author,
-            }
-          : {},
+        author ? { authorId: author } : {},
       ],
     };
 
-    // Remove empty objects because Prisma doesn't accept empty object in AND
-    where.AND = where.AND.filter((c) => Object.keys(c).length !== 0);
+    where.AND = where.AND.filter((c) => Object.keys(c).length);
 
     const [data, total] = await Promise.all([
       prisma.post.findMany({
@@ -74,6 +67,7 @@ export const getAllPosts = async (req, res) => {
   }
 };
 
+// GET /api/posts/:id
 export const getPostById = async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -89,6 +83,39 @@ export const getPostById = async (req, res) => {
   }
 };
 
+// GET /api/posts/slug/:slug
+export const getPostBySlug = async (req, res) => {
+  try {
+    const { slug } = req.params;
+    const post = await prisma.post.findUnique({
+      where: { slug },
+      include: { author: true, category: true, comments: true },
+    });
+    if (!post) return res.status(404).json({ error: "Post not found" });
+    res.json(post);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// GET /api/posts/featured
+export const getFeaturedPosts = async (req, res) => {
+  try {
+    const trendingPosts = await prisma.post.findMany({
+      where: { category: { slug: "trending" } },
+      include: { author: true, category: true },
+      orderBy: { publishedAt: "desc" },
+      take: 2,
+    });
+    res.json({ data: trendingPosts });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch featured posts" });
+  }
+};
+
+// POST /api/posts
 export const createPost = async (req, res) => {
   try {
     const { title, slug, excerpt, content, imageUrl, authorId, categoryId, publishedAt } = req.body;
@@ -111,14 +138,12 @@ export const createPost = async (req, res) => {
     res.status(201).json(post);
   } catch (err) {
     console.error(err);
-    // Handle uniqueness error for slug
-    if (err?.code === "P2002") {
-      return res.status(409).json({ error: "Slug must be unique" });
-    }
+    if (err?.code === "P2002") return res.status(409).json({ error: "Slug must be unique" });
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
+// PUT /api/posts/:id
 export const updatePost = async (req, res) => {
   try {
     const id = Number(req.params.id);
@@ -137,6 +162,7 @@ export const updatePost = async (req, res) => {
   }
 };
 
+// DELETE /api/posts/:id
 export const deletePost = async (req, res) => {
   try {
     const id = Number(req.params.id);
