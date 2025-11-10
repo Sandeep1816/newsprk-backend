@@ -6,10 +6,14 @@ import authorsRoutes from "./routes/authors.js";
 import categoriesRoutes from "./routes/categories.js";
 import commentsRoutes from "./routes/comments.js";
 import authRoutes from "./routes/auth.js";
+import uploadRoutes from "./routes/uploadRoutes.js";  // ✅ for Cloudinary
+import { requireAuth, requireAdmin } from "./middleware/auth.js";
 
 dotenv.config();
 
 const app = express();
+
+// 🧰 Middlewares
 app.use(cors());
 app.use(express.json());
 
@@ -24,6 +28,7 @@ app.use("/api/authors", authorsRoutes);
 app.use("/api/categories", categoriesRoutes);
 app.use("/api/comments", commentsRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/upload", uploadRoutes); // ✅ Cloudinary upload route
 
 // 🚀 Start server
 const PORT = process.env.PORT || 5000;
