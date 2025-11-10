@@ -6,14 +6,14 @@ import authorsRoutes from "./routes/authors.js";
 import categoriesRoutes from "./routes/categories.js";
 import commentsRoutes from "./routes/comments.js";
 import authRoutes from "./routes/auth.js";
-import uploadRoutes from "./routes/uploadRoutes.js";  // ✅ for Cloudinary
+import uploadRoutes from "./routes/uploadRoutes.js";  // ✅ for Cloudinary package changed
 import { requireAuth, requireAdmin } from "./middleware/auth.js";
 
 dotenv.config();
 
 const app = express();
 
-// 🧰 Middlewares
+// 🧰 Middlewares 
 app.use(cors());
 app.use(express.json());
 
