@@ -10,10 +10,10 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "nodemon src/app.js",
     "start": "node src/app.js",
-    "seed": "node prisma/seed.js",
+  
 <<<<<<< Updated upstream
 =======
-    "seed:admin": "node prisma/seed-admin.js",
+   
 >>>>>>> Stashed changes
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push"
