@@ -118,7 +118,7 @@ export const getFeaturedPosts = async (req, res) => {
 // POST /api/posts
 export const createPost = async (req, res) => {
   try {
-    const { title, slug, excerpt, content, imageUrl, authorId, categoryId, publishedAt } = req.body;
+    const { title, slug,badge, excerpt, content, imageUrl, authorId, categoryId, publishedAt } = req.body;
     if (!title || !slug || !content || !authorId || !categoryId) {
       return res.status(400).json({ error: "Missing required fields" });
     }
@@ -126,6 +126,7 @@ export const createPost = async (req, res) => {
       data: {
         title,
         slug,
+        badge,
         excerpt,
         content,
         imageUrl,
