@@ -1,3 +1,27 @@
+// // src/routes/posts.js
+// import express from "express";
+// import {
+//   getAllPosts,
+//   getPostById,
+//   createPost,
+//   updatePost,
+//   deletePost,
+// } from "../controllers/postsController.js";
+// import { requireAuth, requireAdmin } from "../middleware/auth.js";
+
+// const router = express.Router();
+
+// router.get("/", getAllPosts);          // supports pagination & search via query params
+// router.get("/:id", getPostById);
+
+// // Protected routes
+// router.post("/", requireAuth, requireAdmin, createPost);
+// router.put("/:id", requireAuth, requireAdmin, updatePost);
+// router.delete("/:id", requireAuth, requireAdmin, deletePost);
+
+// export default router;
+
+
 // src/routes/posts.js
 import express from "express";
 import {
@@ -8,13 +32,35 @@ import {
   deletePost,
 } from "../controllers/postsController.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
+import { prisma } from "../lib/prisma.js"; // 👈 ADD THIS
 
 const router = express.Router();
 
-router.get("/", getAllPosts);          // supports pagination & search via query params
+// PUBLIC ROUTES
+router.get("/", getAllPosts);
 router.get("/:id", getPostById);
 
-// Protected routes
+// 🔥 ADD THIS ROUTE (BEFORE protected routes)
+router.post("/slug/:slug/view", async (req, res) => {
+  try {
+    const { slug } = req.params;
+
+    const post = await prisma.post.update({
+      where: { slug },
+      data: {
+        views: { increment: 1 },
+      },
+      select: { views: true },
+    });
+
+    res.json({ success: true, views: post.views });
+  } catch (err) {
+    console.error("View increment error:", err);
+    res.status(404).json({ success: false, message: "Post not found" });
+  }
+});
+
+// PROTECTED ROUTES
 router.post("/", requireAuth, requireAdmin, createPost);
 router.put("/:id", requireAuth, requireAdmin, updatePost);
 router.delete("/:id", requireAuth, requireAdmin, deletePost);
