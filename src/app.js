@@ -11,6 +11,8 @@ import { requireAuth, requireAdmin } from "./middleware/auth.js";
 import jobsRoutes from "./routes/jobs.js";
 import companiesRoutes from "./routes/companies.js";
 import applicationsRoutes from "./routes/applications.js";
+import recruitersRoutes from "./routes/recruiters.js"
+
 
 
 dotenv.config();
@@ -36,6 +38,8 @@ app.use("/api/upload", uploadRoutes); // ✅ Cloudinary upload route
 app.use("/api/jobs", jobsRoutes);
 app.use("/api/companies", companiesRoutes);
 app.use("/api/applications", applicationsRoutes);
+app.use("/api/recruiters", recruitersRoutes)
+
 
 
 // 🚀 Start server

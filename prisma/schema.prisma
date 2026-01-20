@@ -112,9 +112,20 @@ model User {
   role      String   @default("candidate") // admin | recruiter | candidate
   createdAt DateTime @default(now())
 
+  // ================= PROFILE (NEW) =================
+  username   String   @unique
+  fullName   String?
+  headline   String?
+  about      String?  @db.LongText
+  location   String?
+  avatarUrl  String?
+  websiteUrl String?
+
+  // ================= RELATIONS =================
   jobsPosted       Job[]
   jobApplications JobApplication[]
 }
+
 
 
 model AuditLog {
