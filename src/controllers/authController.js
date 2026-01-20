@@ -8,15 +8,28 @@ const SALT_ROUNDS = 10;
 
 export const register = async (req, res) => {
   try {
-    const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ error: "Email and password required" });
+    const { email, password, role } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password required" });
+    }
+
+    // Prevent users from self-registering as admin
+    const safeRole = role === "recruiter" ? "recruiter" : "candidate";
 
     const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) return res.status(409).json({ error: "User already exists" });
+    if (existing) {
+      return res.status(409).json({ error: "User already exists" });
+    }
 
     const hashed = await bcrypt.hash(password, SALT_ROUNDS);
+
     const user = await prisma.user.create({
-      data: { email, password: hashed, role: "admin" },
+      data: {
+        email,
+        password: hashed,
+        role: safeRole,
+      },
       select: { id: true, email: true, role: true, createdAt: true },
     });
 
@@ -26,6 +39,7 @@ export const register = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 export const login = async (req, res) => {
   try {

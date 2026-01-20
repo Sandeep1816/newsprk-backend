@@ -54,11 +54,74 @@ model Comment {
   post Post @relation(fields: [postId], references: [id])
 }
 
+model Company {
+  id          Int      @id @default(autoincrement())
+  name        String
+  logoUrl     String?
+  website     String?
+  description String?
+  location    String?
+  isVerified  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  jobs Job[]
+}
+
+model Job {
+  id             Int      @id @default(autoincrement())
+  title          String
+  slug           String   @unique
+  description    String   @db.LongText
+  employmentType String   // Full-time, Part-time
+  experience     String?
+  salaryRange    String?
+  location       String
+  isRemote       Boolean  @default(false)
+  isActive       Boolean  @default(true)
+
+  companyId      Int
+  postedById     Int
+
+  createdAt DateTime @default(now())
+
+  company     Company @relation(fields: [companyId], references: [id])
+  postedBy    User    @relation(fields: [postedById], references: [id])
+  applications JobApplication[]
+}
+
+model JobApplication {
+  id        Int      @id @default(autoincrement())
+  jobId     Int
+  userId    Int
+  resumeUrl String?
+  coverNote String?
+  status    String   @default("applied")
+  createdAt DateTime @default(now())
+
+  job  Job  @relation(fields: [jobId], references: [id])
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([jobId, userId])
+}
+
+
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
   password  String
-  role      String   @default("admin")
+  role      String   @default("candidate") // admin | recruiter | candidate
   createdAt DateTime @default(now())
+
+  jobsPosted       Job[]
+  jobApplications JobApplication[]
 }
 
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  action    String
+  entity    String
+  entityId  Int?
+  userId    Int?
+  createdAt DateTime @default(now())
+}

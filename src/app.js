@@ -8,6 +8,10 @@ import commentsRoutes from "./routes/comments.js";
 import authRoutes from "./routes/auth.js";
 import uploadRoutes from "./routes/uploadRoutes.js";  // ✅ for Cloudinary package changed
 import { requireAuth, requireAdmin } from "./middleware/auth.js";
+import jobsRoutes from "./routes/jobs.js";
+import companiesRoutes from "./routes/companies.js";
+import applicationsRoutes from "./routes/applications.js";
+
 
 dotenv.config();
 
@@ -29,6 +33,10 @@ app.use("/api/categories", categoriesRoutes);
 app.use("/api/comments", commentsRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/upload", uploadRoutes); // ✅ Cloudinary upload route
+app.use("/api/jobs", jobsRoutes);
+app.use("/api/companies", companiesRoutes);
+app.use("/api/applications", applicationsRoutes);
+
 
 // 🚀 Start server
 const PORT = process.env.PORT || 5000;
