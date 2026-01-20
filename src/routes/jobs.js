@@ -5,6 +5,7 @@ import {
   getAllJobs,
   getJobBySlug,
   deactivateJob,
+  getJobsByRecruiter,
 } from "../controllers/jobsController.js";
 
 const router = express.Router();
@@ -15,6 +16,7 @@ router.get("/:slug", getJobBySlug);
 
 // Recruiter
 router.post("/", requireAuth, createJob);
+router.get("/recruiter/:username", getJobsByRecruiter)
 
 // Admin
 router.put("/:id/deactivate", requireAuth, requireAdmin, deactivateJob);

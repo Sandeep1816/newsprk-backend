@@ -74,6 +74,35 @@ export async function getJobBySlug(req, res) {
   }
 }
 
+export async function getJobsByRecruiter(req, res) {
+  try {
+    const { username } = req.params
+
+    const recruiter = await prisma.user.findUnique({
+      where: { username },
+    })
+
+    if (!recruiter || recruiter.role !== "recruiter") {
+      return res.json([])
+    }
+
+    const jobs = await prisma.job.findMany({
+      where: {
+        postedById: recruiter.id,
+        isActive: true,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    })
+
+    res.json(jobs)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: "Failed to fetch recruiter jobs" })
+  }
+}
+
 /**
  * Admin: deactivate job (soft delete)
  */
