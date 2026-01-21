@@ -13,6 +13,8 @@ import companiesRoutes from "./routes/companies.js";
 import applicationsRoutes from "./routes/applications.js";
 import recruitersRoutes from "./routes/recruiters.js"
 import candidatesRoutes from "./routes/candidates.js"
+import recruiterDashboardRoutes from "./routes/recruiterDashboard.js"
+
 
 
 
@@ -41,6 +43,9 @@ app.use("/api/companies", companiesRoutes);  // ✅ Companies routes
 app.use("/api/applications", applicationsRoutes);
 app.use("/api/recruiters", recruitersRoutes)
 app.use("/api/candidates", candidatesRoutes)
+app.use("/api/recruiter", recruiterDashboardRoutes)
+
+
 
 
 

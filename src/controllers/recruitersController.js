@@ -35,3 +35,25 @@ export async function getRecruiterProfile(req, res) {
     res.status(500).json({ error: "Failed to fetch recruiter profile" })
   }
 }
+
+
+
+
+export async function updateRecruiterProfile(req, res) {
+  try {
+    const userId = req.user.userId
+
+    const recruiter = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        fullName: req.body.fullName,
+        headline: req.body.headline,
+      },
+    })
+
+    res.json(recruiter)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: "Failed to update profile" })
+  }
+}

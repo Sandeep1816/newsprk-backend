@@ -14,7 +14,7 @@ export const register = async (req, res) => {
       return res.status(400).json({ error: "Email and password required" });
     }
 
-    // Prevent users from self-registering as admin
+    // 🔒 prevent admin signup
     const safeRole = role === "recruiter" ? "recruiter" : "candidate";
 
     const existing = await prisma.user.findUnique({ where: { email } });
@@ -24,21 +24,41 @@ export const register = async (req, res) => {
 
     const hashed = await bcrypt.hash(password, SALT_ROUNDS);
 
+    // ✅ AUTO USERNAME (LinkedIn style)
+    const base = email.split("@")[0];
+    const username = `${base}_${Date.now().toString().slice(-5)}`;
+
     const user = await prisma.user.create({
       data: {
         email,
         password: hashed,
         role: safeRole,
+        username,
       },
-      select: { id: true, email: true, role: true, createdAt: true },
     });
 
-    res.status(201).json({ user });
+    // ✅ AUTO LOGIN AFTER REGISTER
+    const token = jwt.sign(
+      { userId: user.id, role: user.role },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(201).json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        username: user.username,
+      },
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 
 export const login = async (req, res) => {

@@ -1,17 +1,39 @@
 import { prisma } from "../lib/prisma.js";
+import slugify from "slugify";
 
 /**
  * Recruiter creates company
  */
 export async function createCompany(req, res) {
   try {
+    const { name, logoUrl, website, description, location } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: "Company name is required" });
+    }
+
+    // ✅ Generate LinkedIn-style slug
+    const baseSlug = slugify(name, {
+      lower: true,
+      strict: true,
+      trim: true,
+    });
+
+    let slug = baseSlug;
+    let count = 1;
+
+    while (await prisma.company.findUnique({ where: { slug } })) {
+      slug = `${baseSlug}-${count++}`;
+    }
+
     const company = await prisma.company.create({
       data: {
-        name: req.body.name,
-        logoUrl: req.body.logoUrl,
-        website: req.body.website,
-        description: req.body.description,
-        location: req.body.location,
+        name,
+        slug, // ✅ REQUIRED
+        logoUrl,
+        website,
+        description,
+        location,
       },
     });
 
@@ -49,5 +71,146 @@ export async function verifyCompany(req, res) {
     res.json(company);
   } catch (err) {
     res.status(500).json({ error: "Verification failed" });
+  }
+}
+
+/**
+ * Public: get company profile by slug
+ */
+export async function getCompanyBySlug(req, res) {
+  try {
+    const { slug } = req.params;
+
+    const company = await prisma.company.findUnique({
+      where: { slug },
+      include: {
+        jobs: {
+          where: { isActive: true },
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            location: true,
+            employmentType: true,
+            isRemote: true,
+            createdAt: true,
+          },
+        },
+        _count: {
+          select: {
+            followers: true, // ✅ Correct way
+          },
+        },
+      },
+    });
+
+    if (!company) {
+      return res.status(404).json({ error: "Company not found" });
+    }
+
+    res.json({
+      ...company,
+      followers: company._count.followers,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch company profile" });
+  }
+}
+
+/**
+ * Public: get company people (recruiters)
+ */
+export async function getCompanyPeople(req, res) {
+  try {
+    const { slug } = req.params;
+
+    const company = await prisma.company.findUnique({
+      where: { slug },
+      include: {
+        jobs: {
+          include: {
+            postedBy: {
+              select: {
+                id: true,
+                username: true,
+                fullName: true,
+                headline: true,
+                avatarUrl: true,
+                location: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!company) {
+      return res.status(404).json({ error: "Company not found" });
+    }
+
+    // ✅ Deduplicate recruiters
+    const peopleMap = new Map();
+
+    company.jobs.forEach((job) => {
+      if (job.postedBy) {
+        peopleMap.set(job.postedBy.id, job.postedBy);
+      }
+    });
+
+    res.json(Array.from(peopleMap.values()));
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to fetch company people" });
+  }
+}
+
+/**
+ * Follow company
+ */
+export async function followCompany(req, res) {
+  try {
+    const { companyId } = req.params;
+    const userId = req.user.userId;
+
+    await prisma.companyFollower.create({
+      data: {
+        companyId: Number(companyId),
+        userId,
+      },
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    if (err.code === "P2002") {
+      return res.status(409).json({ error: "Already following" });
+    }
+    console.error(err);
+    res.status(500).json({ error: "Failed to follow company" });
+  }
+}
+
+/**
+ * Unfollow company
+ */
+export async function unfollowCompany(req, res) {
+  try {
+    const { companyId } = req.params;
+    const userId = req.user.userId;
+
+    await prisma.companyFollower.delete({
+      where: {
+        companyId_userId: {
+          companyId: Number(companyId),
+          userId,
+        },
+      },
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Failed to unfollow company" });
   }
 }

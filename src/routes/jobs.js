@@ -12,11 +12,15 @@ const router = express.Router();
 
 // Public
 router.get("/", getAllJobs);
+
+// Recruiter (⚠️ MUST COME BEFORE :slug)
+router.get("/recruiter/:username", getJobsByRecruiter);
+
+// Public
 router.get("/:slug", getJobBySlug);
 
 // Recruiter
 router.post("/", requireAuth, createJob);
-router.get("/recruiter/:username", getJobsByRecruiter)
 
 // Admin
 router.put("/:id/deactivate", requireAuth, requireAdmin, deactivateJob);

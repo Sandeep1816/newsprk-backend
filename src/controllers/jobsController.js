@@ -32,24 +32,38 @@ export async function createJob(req, res) {
 }
 
 /**
- * Public: list jobs
+ * Public: list jobs (for feed)
  */
 export async function getAllJobs(req, res) {
   try {
     const jobs = await prisma.job.findMany({
       where: { isActive: true },
       include: {
-        company: true,
-        postedBy: { select: { id: true, email: true } },
+        company: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,       // ✅ REQUIRED
+            logoUrl: true,    // (optional for later)
+          },
+        },
+        postedBy: {
+          select: {
+            id: true,
+            email: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
-    });
+    })
 
-    res.json(jobs);
+    res.json(jobs)
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch jobs" });
+    console.error(err)
+    res.status(500).json({ error: "Failed to fetch jobs" })
   }
 }
+
 
 /**
  * Public: job detail by slug
