@@ -12,6 +12,7 @@ import jobsRoutes from "./routes/jobs.js";
 import companiesRoutes from "./routes/companies.js";
 import applicationsRoutes from "./routes/applications.js";
 import recruitersRoutes from "./routes/recruiters.js"
+import candidatesRoutes from "./routes/candidates.js"
 
 
 
@@ -35,10 +36,11 @@ app.use("/api/categories", categoriesRoutes);
 app.use("/api/comments", commentsRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/upload", uploadRoutes); // ✅ Cloudinary upload route
-app.use("/api/jobs", jobsRoutes);
-app.use("/api/companies", companiesRoutes);
+app.use("/api/jobs", jobsRoutes);     // ✅ Jobs routes
+app.use("/api/companies", companiesRoutes);  // ✅ Companies routes
 app.use("/api/applications", applicationsRoutes);
 app.use("/api/recruiters", recruitersRoutes)
+app.use("/api/candidates", candidatesRoutes)
 
 
 
