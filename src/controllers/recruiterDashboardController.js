@@ -1,6 +1,10 @@
 export async function getRecruiterDashboard(req, res) {
   try {
-    const recruiterId = req.user.userId
+    if (req.user.role !== "recruiter") {
+      return res.status(403).json({ error: "Not allowed" })
+    }
+
+    const recruiterId = req.user.userId ?? req.user.id
 
     const jobs = await prisma.job.findMany({
       where: {
@@ -24,6 +28,7 @@ export async function getRecruiterDashboard(req, res) {
       recentJobs: jobs.slice(0, 5),
     })
   } catch (err) {
+    console.error("Recruiter dashboard error:", err)
     res.status(500).json({ error: "Failed to load dashboard" })
   }
 }

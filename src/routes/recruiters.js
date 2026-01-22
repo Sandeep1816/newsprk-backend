@@ -4,17 +4,21 @@ import {
   getRecruiterProfile,
   updateRecruiterProfile,
   getMyRecruiterProfile,
+  getRecruiterDashboard,
 } from "../controllers/recruitersController.js"
 
 const router = express.Router()
 
-// 🔐 LOGGED-IN recruiter (MUST be above :username)
+// 🔐 Logged-in recruiter
 router.get("/me", requireAuth, getMyRecruiterProfile)
 
-// 🌍 PUBLIC recruiter profile
+// 📊 Recruiter dashboard
+router.get("/dashboard", requireAuth, getRecruiterDashboard)
+
+// 🌍 Public recruiter profile
 router.get("/:username", getRecruiterProfile)
 
-// ✏️ UPDATE recruiter profile
+// ✏️ Update profile
 router.put("/profile", requireAuth, updateRecruiterProfile)
 
 export default router

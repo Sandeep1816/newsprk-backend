@@ -71,6 +71,61 @@ export async function getMyRecruiterProfile(req, res) {
   }
 }
 
+export async function getRecruiterDashboard(req, res) {
+  try {
+    if (req.user.role !== "recruiter") {
+      return res.status(403).json({ error: "Not allowed" })
+    }
+
+    const recruiterId = req.user.userId
+
+    const jobsCount = await prisma.job.count({
+      where: { postedById: recruiterId, isActive: true },
+    })
+
+    const applicationsCount = await prisma.application.count({
+      where: {
+        job: { postedById: recruiterId },
+      },
+    })
+
+    const shortlistedCount = await prisma.application.count({
+      where: {
+        status: "shortlisted",
+        job: { postedById: recruiterId },
+      },
+    })
+
+    const recentJobsRaw = await prisma.job.findMany({
+      where: { postedById: recruiterId, isActive: true },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        title: true,
+        _count: {
+          select: { applications: true },
+        },
+      },
+    })
+
+    const recentJobs = recentJobsRaw.map(job => ({
+      id: job.id,
+      title: job.title,
+      applications: job._count.applications,
+    }))
+
+    res.json({
+      jobsCount,
+      applicationsCount,
+      shortlistedCount,
+      recentJobs,
+    })
+  } catch (err) {
+    console.error("Recruiter dashboard error:", err)
+    res.status(500).json({ error: "Failed to load dashboard" })
+  }
+}
 
 
 export async function updateRecruiterProfile(req, res) {
