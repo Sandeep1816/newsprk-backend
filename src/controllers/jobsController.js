@@ -6,9 +6,22 @@ import { prisma } from "../lib/prisma.js";
 export async function createJob(req, res) {
   try {
     if (!["recruiter", "admin"].includes(req.user.role)) {
-      return res.status(403).json({ error: "Not allowed" });
+      return res.status(403).json({ error: "Not allowed" })
     }
 
+    // 1️⃣ Fetch recruiter with company
+    const recruiter = await prisma.user.findUnique({
+      where: { id: req.user.userId },
+      select: { companyId: true },
+    })
+
+    if (!recruiter?.companyId) {
+      return res.status(400).json({
+        error: "Recruiter is not linked to any company",
+      })
+    }
+
+    // 2️⃣ Create job with companyId from DB
     const job = await prisma.job.create({
       data: {
         title: req.body.title,
@@ -19,17 +32,19 @@ export async function createJob(req, res) {
         salaryRange: req.body.salaryRange,
         location: req.body.location,
         isRemote: req.body.isRemote ?? false,
-        companyId: req.body.companyId,
+
+        companyId: recruiter.companyId, // ✅ FIX
         postedById: req.user.userId,
       },
-    });
+    })
 
-    res.json(job);
+    res.json(job)
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Job creation failed" });
+    console.error(err)
+    res.status(500).json({ error: "Job creation failed" })
   }
 }
+
 
 /**
  * Public: list jobs (for feed)
@@ -116,6 +131,28 @@ export async function getJobsByRecruiter(req, res) {
     res.status(500).json({ error: "Failed to fetch recruiter jobs" })
   }
 }
+
+export async function getMyRecruiterJobs(req, res) {
+  try {
+    if (req.user.role !== "recruiter") {
+      return res.status(403).json({ error: "Not allowed" })
+    }
+
+    const jobs = await prisma.job.findMany({
+      where: {
+        postedById: req.user.userId,
+        isActive: true,
+      },
+      orderBy: { createdAt: "desc" },
+    })
+
+    res.json(jobs)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: "Failed to fetch recruiter jobs" })
+  }
+}
+
 
 /**
  * Admin: deactivate job (soft delete)

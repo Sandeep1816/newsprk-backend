@@ -1,28 +1,44 @@
-import express from "express";
-import { requireAuth, requireAdmin } from "../middleware/auth.js";
+import express from "express"
+import { requireAuth, requireAdmin } from "../middleware/auth.js"
 import {
   createJob,
   getAllJobs,
   getJobBySlug,
   deactivateJob,
   getJobsByRecruiter,
-} from "../controllers/jobsController.js";
+  getMyRecruiterJobs,
+} from "../controllers/jobsController.js"
 
-const router = express.Router();
+const router = express.Router()
 
-// Public
-router.get("/", getAllJobs);
+/* ================= PUBLIC ================= */
 
-// Recruiter (⚠️ MUST COME BEFORE :slug)
-router.get("/recruiter/:username", getJobsByRecruiter);
+// Job feed
+router.get("/", getAllJobs)
 
-// Public
-router.get("/:slug", getJobBySlug);
+// Job detail
+router.get("/:slug", getJobBySlug)
 
-// Recruiter
-router.post("/", requireAuth, createJob);
+/* ================= RECRUITER ================= */
 
-// Admin
-router.put("/:id/deactivate", requireAuth, requireAdmin, deactivateJob);
+// ✅ MUST COME FIRST
+router.get(
+  "/recruiter/me",
+  requireAuth,
+  getMyRecruiterJobs
+)
 
-export default router;
+// Public recruiter profile jobs
+router.get(
+  "/recruiter/:username",
+  getJobsByRecruiter
+)
+
+// Create job
+router.post("/", requireAuth, createJob)
+
+/* ================= ADMIN ================= */
+
+router.put("/:id/deactivate", requireAuth, requireAdmin, deactivateJob)
+
+export default router

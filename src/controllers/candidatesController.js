@@ -26,3 +26,30 @@ export async function getCandidateProfile(req, res) {
     res.status(500).json({ error: "Failed to fetch candidate profile" })
   }
 }
+
+
+export async function onboardCandidate(req, res) {
+  try {
+    if (req.user.role !== "candidate") {
+      return res.status(403).json({ error: "Not allowed" })
+    }
+
+    const { fullName, headline, location, about } = req.body
+
+    const user = await prisma.user.update({
+      where: { id: req.user.userId },
+      data: {
+        fullName,
+        headline,
+        location,
+        about,
+        isOnboarded: true,
+      },
+    })
+
+    res.json(user)
+  } catch (err) {
+    console.error("Candidate onboarding error:", err)
+    res.status(500).json({ error: "Failed to onboard candidate" })
+  }
+}
