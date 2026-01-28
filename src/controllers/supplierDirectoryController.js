@@ -89,6 +89,43 @@ export const approveDirectory = async (req, res) => {
   }
 }
 
+
+/**
+ * Get recruiter directories (My directories)
+ */
+export const getMyDirectories = async (req, res) => {
+  try {
+    const user = req.user
+
+    if (user.role !== "recruiter") {
+      return res.status(403).json({ error: "Not allowed" })
+    }
+
+    const directories = await prisma.supplierDirectory.findMany({
+      where: {
+        submittedById: user.userId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        status: true,
+        isLiveEditable: true,
+        createdAt: true,
+      },
+    })
+
+    res.json(directories)
+  } catch (err) {
+    console.error("Get recruiter directories error:", err)
+    res.status(500).json({ error: "Failed to load directories" })
+  }
+}
+
+
 /**
  * Recruiter updates directory (LIVE after approval)
  */

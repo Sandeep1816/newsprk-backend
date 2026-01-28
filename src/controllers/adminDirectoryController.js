@@ -1,61 +1,50 @@
 import prisma from "../prismaClient.js"
 
 export async function getPendingDirectories(req, res) {
-  if (req.user.role !== "admin") {
+  if (req.user.role?.toLowerCase() !== "admin") {
     return res.status(403).json({ error: "Admin only" })
   }
 
- const directories = await prisma.supplierDirectory.findMany({
-  where: {
-    status: "PENDING",
-  },
-  orderBy: { createdAt: "asc" },
-  include: {
-    submittedBy: {
-      select: { id: true, email: true, fullName: true },
+  const directories = await prisma.supplierDirectory.findMany({
+    where: {
+      status: "PENDING",
     },
-  },
-})
-
+    orderBy: { createdAt: "asc" },
+    include: {
+      submittedBy: {
+        select: { id: true, email: true, fullName: true },
+      },
+    },
+  })
 
   res.json(directories)
 }
 
 export async function getDirectoryForReview(req, res) {
-  try {
-    if (req.user.role !== "admin") {
-      return res.status(403).json({ error: "Admin only" })
-    }
-
-    const directoryId = Number(req.params.id)
-
-    const directory = await prisma.supplierDirectory.findUnique({
-      where: { id: directoryId },
-      include: {
-        submittedBy: {
-          select: {
-            id: true,
-            email: true,
-            fullName: true,
-          },
-        },
-      },
-    })
-
-    if (!directory) {
-      return res.status(404).json({ error: "Directory not found" })
-    }
-
-    res.json(directory)
-  } catch (err) {
-    console.error("Admin directory review error:", err)
-    res.status(500).json({ error: "Failed to load directory" })
+  if (req.user.role?.toLowerCase() !== "admin") {
+    return res.status(403).json({ error: "Admin only" })
   }
+
+  const directoryId = Number(req.params.id)
+
+  const directory = await prisma.supplierDirectory.findUnique({
+    where: { id: directoryId },
+    include: {
+      submittedBy: {
+        select: { id: true, email: true, fullName: true },
+      },
+    },
+  })
+
+  if (!directory) {
+    return res.status(404).json({ error: "Directory not found" })
+  }
+
+  res.json(directory)
 }
 
-
 export async function approveDirectory(req, res) {
-  if (req.user.role !== "admin") {
+  if (req.user.role?.toLowerCase() !== "admin") {
     return res.status(403).json({ error: "Admin only" })
   }
 
@@ -66,7 +55,7 @@ export async function approveDirectory(req, res) {
     data: {
       status: "APPROVED",
       isLiveEditable: true,
-      approvedById: req.user.userId,
+      approvedById: req.user.userId ?? req.user.id,
       approvedAt: new Date(),
     },
   })
@@ -76,16 +65,15 @@ export async function approveDirectory(req, res) {
       action: "DIRECTORY_APPROVED",
       entity: "SupplierDirectory",
       entityId: directory.id,
-      userId: req.user.userId,
+      userId: req.user.userId ?? req.user.id,
     },
   })
 
   res.json({ message: "Directory approved", directory })
 }
 
-
 export async function rejectDirectory(req, res) {
-  if (req.user.role !== "admin") {
+  if (req.user.role?.toLowerCase() !== "admin") {
     return res.status(403).json({ error: "Admin only" })
   }
 
@@ -101,7 +89,7 @@ export async function rejectDirectory(req, res) {
       action: "DIRECTORY_REJECTED",
       entity: "SupplierDirectory",
       entityId: directoryId,
-      userId: req.user.userId,
+      userId: req.user.userId ?? req.user.id,
     },
   })
 
