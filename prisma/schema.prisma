@@ -141,13 +141,16 @@ model User {
 
   isOnboarded Boolean @default(false)
 
-  // ✅ ADD THESE TWO LINES
   companyId Int?
   company   Company? @relation(fields: [companyId], references: [id])
 
   jobsPosted        Job[]
   jobApplications   JobApplication[]
   followedCompanies CompanyFollower[]
+
+  // ✅ FIXED RELATIONS
+  submittedDirectories SupplierDirectory[] @relation("SubmittedDirectories")
+  approvedDirectories  SupplierDirectory[] @relation("ApprovedDirectories")
 }
 
 model AuditLog {
@@ -157,4 +160,38 @@ model AuditLog {
   entityId  Int?
   userId    Int?
   createdAt DateTime @default(now())
+}
+
+enum DirectoryStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model SupplierDirectory {
+  id            Int     @id @default(autoincrement())
+  name          String
+  slug          String  @unique
+  phoneNumber   String?
+  email         String?
+  // ✅ JSON ARRAYS
+  tradeNames    Json? // ["AMBA", "US Mold Builders"]
+  videoGallery  Json? // ["https://youtube.com/...", "..."]
+  description   String  @db.LongText
+  website       String?
+  logoUrl       String?
+  coverImageUrl String?
+
+  status         DirectoryStatus @default(PENDING)
+  isLiveEditable Boolean         @default(false)
+
+  submittedById Int
+  approvedById  Int?
+
+  createdAt  DateTime  @default(now())
+  approvedAt DateTime?
+
+  // ✅ FIXED RELATIONS
+  submittedBy User  @relation("SubmittedDirectories", fields: [submittedById], references: [id])
+  approvedBy  User? @relation("ApprovedDirectories", fields: [approvedById], references: [id])
 }

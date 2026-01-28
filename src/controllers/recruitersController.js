@@ -79,25 +79,39 @@ export async function getRecruiterDashboard(req, res) {
 
     const recruiterId = req.user.userId
 
+    // ✅ ACTIVE JOBS
     const jobsCount = await prisma.job.count({
-      where: { postedById: recruiterId, isActive: true },
-    })
-
-    const applicationsCount = await prisma.application.count({
       where: {
-        job: { postedById: recruiterId },
+        postedById: recruiterId,
+        isActive: true,
       },
     })
 
-    const shortlistedCount = await prisma.application.count({
+    // ✅ APPLICATIONS COUNT (FIXED)
+    const applicationsCount = await prisma.jobApplication.count({
+      where: {
+        job: {
+          postedById: recruiterId,
+        },
+      },
+    })
+
+    // ✅ SHORTLISTED (OPTIONAL)
+    const shortlistedCount = await prisma.jobApplication.count({
       where: {
         status: "shortlisted",
-        job: { postedById: recruiterId },
+        job: {
+          postedById: recruiterId,
+        },
       },
     })
 
+    // ✅ RECENT JOBS
     const recentJobsRaw = await prisma.job.findMany({
-      where: { postedById: recruiterId, isActive: true },
+      where: {
+        postedById: recruiterId,
+        isActive: true,
+      },
       orderBy: { createdAt: "desc" },
       take: 5,
       select: {

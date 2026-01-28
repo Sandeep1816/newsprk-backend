@@ -14,6 +14,9 @@ import applicationsRoutes from "./routes/applications.js";
 import recruitersRoutes from "./routes/recruiters.js"
 import candidatesRoutes from "./routes/candidates.js"
 import recruiterDashboardRoutes from "./routes/recruiterDashboard.js"
+import supplierDirectoryRoutes from "./routes/supplierDirectories.js"
+import adminDirectoryRoutes from "./routes/adminDirectories.js"
+import publicSupplierRoutes from "./routes/publicSuppliers.js"
 
 
 
@@ -44,6 +47,9 @@ app.use("/api/applications", applicationsRoutes);
 app.use("/api/recruiters", recruitersRoutes)
 app.use("/api/candidates", candidatesRoutes)
 app.use("/api/recruiter", recruiterDashboardRoutes)
+app.use("/api/suppliers", supplierDirectoryRoutes)
+app.use("/api/admin", adminDirectoryRoutes)
+app.use("/api/suppliers", publicSupplierRoutes)
 
 
 
