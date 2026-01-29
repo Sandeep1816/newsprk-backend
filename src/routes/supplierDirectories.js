@@ -6,6 +6,7 @@ import {
   getSuppliers,
   getSupplierBySlug,
   getMyDirectories,
+  getMyDirectoryById,
 } from "../controllers/supplierDirectoryController.js"
 
 import { requireAuth, requireAdmin } from "../middleware/auth.js"
@@ -23,6 +24,13 @@ router.get(
 
 // Admin
 router.patch("/admin/:id/approve", requireAuth, requireAdmin, approveDirectory)
+
+// Recruiter
+router.get(
+  "/recruiter/directories/:id",
+  requireAuth,
+  getMyDirectoryById
+)
 
 // Public
 router.get("/", getSuppliers)

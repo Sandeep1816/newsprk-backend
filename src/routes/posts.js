@@ -7,6 +7,7 @@ import {
   createPost,
   updatePost,
   deletePost,
+  getRecruiterArticleBySlug
 } from "../controllers/postsController.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { prisma } from "../lib/prisma.js"; // 👈 ADD THIS
@@ -36,6 +37,10 @@ router.post("/slug/:slug/view", async (req, res) => {
     res.status(404).json({ success: false, message: "Post not found" });
   }
 });
+
+
+router.get("/articles/:slug", getRecruiterArticleBySlug)
+
 
 // PROTECTED ROUTES
 router.post("/", requireAuth, requireAdmin, createPost);

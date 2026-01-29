@@ -17,6 +17,9 @@ import recruiterDashboardRoutes from "./routes/recruiterDashboard.js"
 import supplierDirectoryRoutes from "./routes/supplierDirectories.js"
 import adminDirectoryRoutes from "./routes/adminDirectories.js"
 import publicSupplierRoutes from "./routes/publicSuppliers.js"
+import recruiterArticlesRoutes from "./routes/recruiterArticles.js"
+import companyArticlesRoutes from "./routes/companyArticles.js"
+import adminArticlesRoutes from "./routes/adminArticles.js"
 
 
 
@@ -42,6 +45,7 @@ app.use("/api/comments", commentsRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/upload", uploadRoutes); // ✅ Cloudinary upload route
 app.use("/api/jobs", jobsRoutes);     // ✅ Jobs routes
+app.use("/api/companies", companyArticlesRoutes)
 app.use("/api/companies", companiesRoutes);  // ✅ Companies routes
 app.use("/api/applications", applicationsRoutes);
 app.use("/api/recruiters", recruitersRoutes)
@@ -50,6 +54,8 @@ app.use("/api/recruiter", recruiterDashboardRoutes)
 app.use("/api/suppliers", supplierDirectoryRoutes)
 app.use("/api/admin", adminDirectoryRoutes)
 app.use("/api/suppliers", publicSupplierRoutes)
+app.use("/api/recruiter", recruiterArticlesRoutes)
+app.use("/api/admin", adminArticlesRoutes)
 
 
 

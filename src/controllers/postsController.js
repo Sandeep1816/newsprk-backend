@@ -99,6 +99,36 @@ export const getPostBySlug = async (req, res) => {
   }
 };
 
+export const getRecruiterArticleBySlug = async (req, res) => {
+  try {
+    const { slug } = req.params
+
+    const article = await prisma.post.findFirst({
+      where: {
+        slug,
+        status: "APPROVED",
+        publishedAt: { not: null },
+        category: { slug: "articles" },
+      },
+      include: {
+        company: {
+          select: { id: true, name: true, slug: true },
+        },
+      },
+    })
+
+    if (!article) {
+      return res.status(404).json({ error: "Article not found" })
+    }
+
+    res.json(article)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: "Failed to fetch article" })
+  }
+}
+
+
 // GET /api/posts/featured
 export const getFeaturedPosts = async (req, res) => {
   try {

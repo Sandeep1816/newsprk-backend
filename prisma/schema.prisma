@@ -23,22 +23,36 @@ model Category {
 }
 
 model Post {
-  id          Int       @id @default(autoincrement())
-  title       String
-  slug        String    @unique
-  badge       String?
-  excerpt     String?
-  content     String    @db.LongText
-  imageUrl    String?
-  authorId    Int
-  categoryId  Int
+  id       Int     @id @default(autoincrement())
+  title    String
+  slug     String  @unique
+  badge    String?
+  excerpt  String?
+  content  String  @db.LongText
+  imageUrl String?
+
+  authorId   Int?
+  companyId  Int?
+  categoryId Int
+
+  // 🔐 ADMIN APPROVAL
+  status       PostStatus @default(PENDING)
+  createdById  Int?
+  approvedById Int?
+  approvedAt   DateTime?
+
   publishedAt DateTime?
   views       Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  author   Author    @relation(fields: [authorId], references: [id])
-  category Category  @relation(fields: [categoryId], references: [id])
+  author   Author?  @relation(fields: [authorId], references: [id])
+  company  Company? @relation(fields: [companyId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
+
+  createdBy  User? @relation("CreatedPosts", fields: [createdById], references: [id])
+  approvedBy User? @relation("ApprovedPosts", fields: [approvedById], references: [id])
+
   comments Comment[]
 }
 
@@ -71,8 +85,10 @@ model Company {
   // ✅ ADD THIS
   recruiters User[]
 
-  jobs      Job[]
-  followers CompanyFollower[]
+  jobs                Job[]
+  followers           CompanyFollower[]
+  articles            Post[]
+  supplierDirectories SupplierDirectory[]
 }
 
 model CompanyFollower {
@@ -151,6 +167,9 @@ model User {
   // ✅ FIXED RELATIONS
   submittedDirectories SupplierDirectory[] @relation("SubmittedDirectories")
   approvedDirectories  SupplierDirectory[] @relation("ApprovedDirectories")
+
+  createdPosts  Post[] @relation("CreatedPosts")
+  approvedPosts Post[] @relation("ApprovedPosts")
 }
 
 model AuditLog {
@@ -169,18 +188,33 @@ enum DirectoryStatus {
 }
 
 model SupplierDirectory {
-  id            Int     @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   name          String
-  slug          String  @unique
+  slug          String   @unique
+  // ✅ ADD THIS
+  companyId     Int?
+  company       Company? @relation(fields: [companyId], references: [id])
   phoneNumber   String?
   email         String?
   // ✅ JSON ARRAYS
   tradeNames    Json? // ["AMBA", "US Mold Builders"]
   videoGallery  Json? // ["https://youtube.com/...", "..."]
-  description   String  @db.LongText
+  description   String   @db.LongText
   website       String?
   logoUrl       String?
   coverImageUrl String?
+  // ✅ SOCIAL MEDIA LINKS
+  socialLinks   Json?
+  // {
+  //   "facebook": "https://facebook.com/...",
+  //   "linkedin": "https://linkedin.com/...",
+  //   "twitter": "https://twitter.com/...",
+  //   "youtube": "https://youtube.com/..."
+  // }
+
+  // ✅ PRODUCTS / SUPPLIES
+  productSupplies Json?
+  // ["Injection Molds", "Hot Runner Systems", "Tooling Design"]
 
   status         DirectoryStatus @default(PENDING)
   isLiveEditable Boolean         @default(false)
@@ -194,4 +228,10 @@ model SupplierDirectory {
   // ✅ FIXED RELATIONS
   submittedBy User  @relation("SubmittedDirectories", fields: [submittedById], references: [id])
   approvedBy  User? @relation("ApprovedDirectories", fields: [approvedById], references: [id])
+}
+
+enum PostStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

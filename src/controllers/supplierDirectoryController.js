@@ -22,6 +22,8 @@ export const createDirectory = async (req, res) => {
       email,
       tradeNames,
       videoGallery,
+      socialLinks,        
+      productSupplies,
     } = req.body
 
     const directory = await prisma.supplierDirectory.create({
@@ -36,6 +38,8 @@ export const createDirectory = async (req, res) => {
         email,
         tradeNames,     // Json
         videoGallery,   // Json
+        socialLinks,        
+        productSupplies,
         status: "PENDING",
         isLiveEditable: false,
         submittedById: user.userId,
@@ -89,6 +93,35 @@ export const approveDirectory = async (req, res) => {
   }
 }
 
+/**
+ * Get single recruiter directory by ID (for edit page)
+ */
+export const getMyDirectoryById = async (req, res) => {
+  try {
+    const user = req.user
+    const directoryId = Number(req.params.id)
+
+    if (user.role !== "recruiter") {
+      return res.status(403).json({ error: "Not allowed" })
+    }
+
+    const directory = await prisma.supplierDirectory.findFirst({
+      where: {
+        id: directoryId,
+        submittedById: user.userId,
+      },
+    })
+
+    if (!directory) {
+      return res.status(404).json({ error: "Directory not found" })
+    }
+
+    res.json(directory)
+  } catch (err) {
+    console.error("Get directory by id error:", err)
+    res.status(500).json({ error: "Failed to load directory" })
+  }
+}
 
 /**
  * Get recruiter directories (My directories)
@@ -160,6 +193,8 @@ export const updateDirectory = async (req, res) => {
       email,
       tradeNames,
       videoGallery,
+      socialLinks,        
+      productSupplies,
       slug,
     } = req.body
 
@@ -180,6 +215,8 @@ export const updateDirectory = async (req, res) => {
         email,
         tradeNames,
         videoGallery,
+        socialLinks,        
+        productSupplies,
       },
     })
 
