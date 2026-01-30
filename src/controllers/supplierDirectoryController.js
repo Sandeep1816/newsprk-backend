@@ -26,25 +26,30 @@ export const createDirectory = async (req, res) => {
       productSupplies,
     } = req.body
 
-    const directory = await prisma.supplierDirectory.create({
-      data: {
-        name,
-        slug,
-        description,
-        website,
-        logoUrl,
-        coverImageUrl,
-        phoneNumber,
-        email,
-        tradeNames,     // Json
-        videoGallery,   // Json
-        socialLinks,        
-        productSupplies,
-        status: "PENDING",
-        isLiveEditable: false,
-        submittedById: user.userId,
-      },
-    })
+   const directory = await prisma.supplierDirectory.create({
+  data: {
+    name,
+    slug,
+    description,
+    website,
+    logoUrl,
+    coverImageUrl,
+    phoneNumber,
+    email,
+    tradeNames,
+    videoGallery,
+    socialLinks,
+    productSupplies,
+
+    // 🔥 THIS LINE FIXES EVERYTHING
+    companyId: user.companyId,
+
+    status: "PENDING",
+    isLiveEditable: false,
+    submittedById: user.userId,
+  },
+})
+
 
     res.status(201).json(directory)
   } catch (err) {
