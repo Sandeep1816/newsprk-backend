@@ -170,6 +170,8 @@ model User {
 
   createdPosts  Post[] @relation("CreatedPosts")
   approvedPosts Post[] @relation("ApprovedPosts")
+
+  createdBanners AdvertisementBanner[] @relation("CreatedBanners")
 }
 
 model AuditLog {
@@ -219,6 +221,8 @@ model SupplierDirectory {
   status         DirectoryStatus @default(PENDING)
   isLiveEditable Boolean         @default(false)
 
+  views          Int             @default(0)
+
   submittedById Int
   approvedById  Int?
 
@@ -235,3 +239,48 @@ enum PostStatus {
   APPROVED
   REJECTED
 }
+
+
+enum BannerStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum BannerPlacement {
+  HOME_TOP
+  HOME_MIDDLE
+  HOME_BOTTOM
+
+  ARTICLE_TOP
+  ARTICLE_MIDDLE
+  ARTICLE_BOTTOM
+
+  SUPPLIER_TOP
+  SUPPLIER_AFTER_VIDEO
+  SIDEBAR
+  FOOTER
+}
+
+model AdvertisementBanner {
+  id          Int          @id @default(autoincrement())
+  title       String
+  imageUrl    String
+  targetUrl   String?
+  placement   BannerPlacement
+  status      BannerStatus @default(INACTIVE)
+
+  position    Int          @default(0)
+
+  startDate   DateTime?
+  endDate     DateTime?
+
+  impressions Int          @default(0)
+  clicks      Int          @default(0)
+
+  createdById Int
+  createdBy   User @relation("CreatedBanners", fields: [createdById], references: [id])
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+

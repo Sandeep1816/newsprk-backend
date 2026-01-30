@@ -259,16 +259,17 @@ export const getSuppliers = async (_req, res) => {
 export const getSupplierBySlug = async (req, res) => {
   const { slug } = req.params
 
-  const supplier = await prisma.supplierDirectory.findFirst({
-    where: {
-      slug,
-      status: "APPROVED",
+  const supplier = await prisma.supplierDirectory.update({
+    where: { slug },
+    data: {
+      views: { increment: 1 }, // 👁️ +1 view
     },
   })
 
-  if (!supplier) {
+  if (!supplier || supplier.status !== "APPROVED") {
     return res.status(404).json({ error: "Supplier not found" })
   }
 
   res.json(supplier)
 }
+

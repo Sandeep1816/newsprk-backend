@@ -20,6 +20,8 @@ import publicSupplierRoutes from "./routes/publicSuppliers.js"
 import recruiterArticlesRoutes from "./routes/recruiterArticles.js"
 import companyArticlesRoutes from "./routes/companyArticles.js"
 import adminArticlesRoutes from "./routes/adminArticles.js"
+import bannerRoutes from "./routes/banner.routes.js"
+import bannerUploadRoutes from "./routes/bannerUpload.routes.js"
 
 
 
@@ -56,6 +58,8 @@ app.use("/api/admin", adminDirectoryRoutes)
 app.use("/api/suppliers", publicSupplierRoutes)
 app.use("/api/recruiter", recruiterArticlesRoutes)
 app.use("/api/admin", adminArticlesRoutes)
+app.use("/api/banners", bannerRoutes);
+app.use("/api/banners", bannerUploadRoutes);
 
 
 
