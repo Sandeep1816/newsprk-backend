@@ -148,10 +148,30 @@ export const getFeaturedPosts = async (req, res) => {
 // POST /api/posts
 export const createPost = async (req, res) => {
   try {
-    const { title, slug,badge, excerpt, content, imageUrl, authorId, categoryId, publishedAt } = req.body;
+    const {
+      title,
+      slug,
+      badge,
+      excerpt,
+      content,
+      imageUrl,
+      authorId,
+      categoryId,
+      publishedAt,
+
+      // ✅ NEW OPTIONAL FIELDS
+      facebookUrl,
+      linkedinUrl,
+      twitterUrl,
+      youtubeUrl,
+      email,
+      whatsappNumber,
+    } = req.body;
+
     if (!title || !slug || !content || !authorId || !categoryId) {
       return res.status(400).json({ error: "Missing required fields" });
     }
+
     const post = await prisma.post.create({
       data: {
         title,
@@ -160,38 +180,55 @@ export const createPost = async (req, res) => {
         excerpt,
         content,
         imageUrl,
+
+        // ✅ SAVE OPTIONAL FIELDS
+        facebookUrl,
+        linkedinUrl,
+        twitterUrl,
+        youtubeUrl,
+        email,
+        whatsappNumber,
+
         authorId: Number(authorId),
         categoryId: Number(categoryId),
         publishedAt: publishedAt ? new Date(publishedAt) : new Date(),
       },
       include: { author: true, category: true },
     });
+
     res.status(201).json(post);
   } catch (err) {
     console.error(err);
-    if (err?.code === "P2002") return res.status(409).json({ error: "Slug must be unique" });
+    if (err?.code === "P2002") {
+      return res.status(409).json({ error: "Slug must be unique" });
+    }
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 // PUT /api/posts/:id
 export const updatePost = async (req, res) => {
   try {
     const id = Number(req.params.id);
     const data = req.body;
+
     if (data.authorId) data.authorId = Number(data.authorId);
     if (data.categoryId) data.categoryId = Number(data.categoryId);
+
     const updated = await prisma.post.update({
       where: { id },
-      data,
+      data, // ✅ includes facebookUrl, twitterUrl, etc automatically
       include: { author: true, category: true },
     });
+
     res.json(updated);
   } catch (err) {
     console.error(err);
     res.status(400).json({ error: err.message });
   }
 };
+
 
 // DELETE /api/posts/:id
 export const deletePost = async (req, res) => {

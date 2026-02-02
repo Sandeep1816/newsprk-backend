@@ -31,6 +31,15 @@ model Post {
   content  String  @db.LongText
   imageUrl String?
 
+  facebookUrl    String?
+  linkedinUrl    String?
+  twitterUrl     String?
+  youtubeUrl     String?
+  email          String?
+  whatsappNumber String?
+
+
+
   authorId   Int?
   companyId  Int?
   categoryId Int
