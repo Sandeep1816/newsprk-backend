@@ -73,27 +73,41 @@ export const publishEvent = async (req, res) => {
 }
 
 /**
- * 🌍 PUBLIC: Get Upcoming Events
+ * 🌍 PUBLIC: Get Upcoming Events (Search by title)
+ * ✅ MySQL / MariaDB compatible
  */
 export const getUpcomingEvents = async (req, res) => {
   try {
+    const { q } = req.query
+
     const events = await prisma.event.findMany({
       where: {
         status: "PUBLISHED",
         startDate: {
-          gte: new Date()
-        }
+          gte: new Date(),
+        },
+        ...(q && {
+          title: {
+            contains: q, // ✅ works in MySQL
+          },
+        }),
       },
       orderBy: {
-        startDate: "asc"
-      }
+        startDate: "asc",
+      },
     })
 
     res.json(events)
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to fetch events" })
+    console.error("Get Upcoming Events Error:", error)
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch events",
+    })
   }
 }
+
+
 
 /**
  * 🌍 PUBLIC: Get Event By Slug

@@ -23,6 +23,7 @@ import adminArticlesRoutes from "./routes/adminArticles.js"
 import bannerRoutes from "./routes/banner.routes.js"
 import bannerUploadRoutes from "./routes/bannerUpload.routes.js"
 import eventRoutes from "./routes/events.js"
+import calendarRoutes from "./routes/calendar.js"
 
 
 
@@ -62,6 +63,7 @@ app.use("/api/admin", adminArticlesRoutes)
 app.use("/api/banners", bannerRoutes);
 app.use("/api/banners", bannerUploadRoutes);
 app.use("/api/events", eventRoutes)
+app.use("/api/calendar", calendarRoutes)
 
 
 
