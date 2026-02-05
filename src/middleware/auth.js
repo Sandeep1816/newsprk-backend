@@ -44,17 +44,25 @@ export function requireAuth(req, res, next) {
 
     const payload = jwt.verify(token, JWT_SECRET)
 
-    // ✅ normalize role
+    // ✅ MATCH JWT PAYLOAD
     req.user = {
-      ...payload,
+      id: payload.id,                 // ⭐ FIX
       role: payload.role?.toLowerCase(),
+      email: payload.email,
+      companyId: payload.companyId ?? null,
     }
 
+    // console.log("DEBUG req.user =", req.user)
+
     next()
-  } catch (err) {
+  } catch {
     return res.status(401).json({ error: "Invalid or expired token" })
   }
 }
+
+
+
+
 
 export function requireAdmin(req, res, next) {
   if (!req.user) {

@@ -1,4 +1,4 @@
-import { prisma } from "../lib/prisma.js";
+import { prisma } from "../lib/prisma.js"
 
 /**
  * Candidate applies for job
@@ -12,7 +12,7 @@ export async function applyJob(req, res) {
     const application = await prisma.jobApplication.create({
       data: {
         jobId: req.body.jobId,
-        userId: req.user.userId,
+        userId: req.user.id,          // ✅ FIX
         resumeUrl: req.body.resumeUrl,
         coverNote: req.body.coverNote,
       },
@@ -28,27 +28,35 @@ export async function applyJob(req, res) {
   }
 }
 
-
 /**
  * Candidate: view own applications
  */
 export async function getMyApplications(req, res) {
   try {
+    if (req.user.role !== "candidate") {
+      return res.status(403).json({ error: "Not allowed" })
+    }
+
     const applications = await prisma.jobApplication.findMany({
-      where: { userId: req.user.userId },
+      where: {
+        userId: req.user.id,          // ✅ FIX (MOST IMPORTANT)
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
       include: {
         job: {
           include: { company: true },
         },
       },
-    });
+    })
 
-    res.json(applications);
+    res.json(applications)
   } catch (err) {
-    res.status(500).json({ error: "Failed to fetch applications" });
+    console.error(err)
+    res.status(500).json({ error: "Failed to fetch applications" })
   }
 }
-
 
 /**
  * Recruiter: view applicants for a job
@@ -61,11 +69,11 @@ export async function getApplicantsByJob(req, res) {
 
     const jobId = Number(req.params.jobId)
 
-    // 🔒 Security: recruiter can see ONLY their job applicants
+    // 🔒 Recruiter can see ONLY their jobs
     const job = await prisma.job.findFirst({
       where: {
         id: jobId,
-        postedById: req.user.userId,
+        postedById: req.user.id,      // ✅ FIX
       },
     })
 

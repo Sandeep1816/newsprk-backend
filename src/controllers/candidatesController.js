@@ -27,9 +27,10 @@ export async function getCandidateProfile(req, res) {
   }
 }
 
-
 export async function onboardCandidate(req, res) {
   try {
+    console.log("DEBUG req.user =", req.user)
+
     if (req.user.role !== "candidate") {
       return res.status(403).json({ error: "Not allowed" })
     }
@@ -37,7 +38,9 @@ export async function onboardCandidate(req, res) {
     const { fullName, headline, location, about } = req.body
 
     const user = await prisma.user.update({
-      where: { id: req.user.userId },
+      where: {
+        id: req.user.id,
+      },
       data: {
         fullName,
         headline,
@@ -53,3 +56,4 @@ export async function onboardCandidate(req, res) {
     res.status(500).json({ error: "Failed to onboard candidate" })
   }
 }
+
