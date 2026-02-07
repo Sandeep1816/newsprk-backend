@@ -241,3 +241,20 @@ export const deletePost = async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 };
+
+export const incrementPostView = async (req, res) => {
+  try {
+    const { slug } = req.params;
+
+    const post = await prisma.post.update({
+      where: { slug },
+      data: { views: { increment: 1 } },
+      select: { views: true },
+    });
+
+    res.json({ success: true, views: post.views });
+  } catch (err) {
+    console.error("View increment error:", err);
+    res.status(404).json({ success: false, message: "Post not found" });
+  }
+};
