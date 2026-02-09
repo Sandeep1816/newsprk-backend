@@ -29,6 +29,32 @@ export const getPendingArticles = async (req, res) => {
 }
 
 /**
+ * GET all approved recruiter articles
+ */
+
+export const getAdminApprovedArticles = async (req, res) => {
+  try {
+    const articles = await prisma.post.findMany({
+      where: {
+        status: "APPROVED",
+        category: { slug: "articles" },
+      },
+      orderBy: { publishedAt: "desc" },
+      include: {
+        company: {
+          select: { id: true, name: true },
+        },
+      },
+    })
+
+    res.json(articles)
+  } catch (err) {
+    console.error("Admin fetch approved articles error:", err)
+    res.status(500).json({ error: "Failed to fetch approved articles" })
+  }
+}
+
+/**
  * APPROVE article
  */
 export const approveArticle = async (req, res) => {

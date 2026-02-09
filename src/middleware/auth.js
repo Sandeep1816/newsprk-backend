@@ -52,7 +52,7 @@ export function requireAuth(req, res, next) {
       companyId: payload.companyId ?? null,
     }
 
-    // console.log("DEBUG req.user =", req.user)
+    console.log("DEBUG req.user =", req.user)
 
     next()
   } catch {

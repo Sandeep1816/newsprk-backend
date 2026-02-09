@@ -245,3 +245,41 @@ export async function deactivateJob(req, res) {
     res.status(500).json({ error: "Failed to deactivate job" });
   }
 }
+
+
+/**
+ * Admin: company-wise jobs with count
+ */
+export async function getAdminCompanyJobs(req, res) {
+  try {
+    const companies = await prisma.company.findMany({
+      include: {
+        jobs: {
+          where: { isActive: true },
+          orderBy: { createdAt: "desc" },
+        },
+        _count: {
+          select: {
+            jobs: {
+              where: { isActive: true },
+            },
+          },
+        },
+      },
+      orderBy: { name: "asc" },
+    })
+
+    res.json(
+      companies.map(c => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        jobsCount: c._count.jobs,
+        jobs: c.jobs,
+      }))
+    )
+  } catch (err) {
+    console.error("Admin company jobs error:", err)
+    res.status(500).json({ error: "Failed to fetch admin jobs" })
+  }
+}

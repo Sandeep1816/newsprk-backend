@@ -219,12 +219,7 @@ model SupplierDirectory {
   coverImageUrl String?
   // ✅ SOCIAL MEDIA LINKS
   socialLinks   Json?
-  // {
-  //   "facebook": "https://facebook.com/...",
-  //   "linkedin": "https://linkedin.com/...",
-  //   "twitter": "https://twitter.com/...",
-  //   "youtube": "https://youtube.com/..."
-  // }
+
 
   // ✅ PRODUCTS / SUPPLIES
   productSupplies Json?

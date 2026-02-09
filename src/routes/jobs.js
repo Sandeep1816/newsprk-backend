@@ -7,6 +7,7 @@ import {
   deactivateJob,
   getJobsByRecruiter,
   getMyRecruiterJobs,
+  getAdminCompanyJobs
 } from "../controllers/jobsController.js"
 
 const router = express.Router()
@@ -26,6 +27,13 @@ router.get(
   "/recruiter/me",
   requireAuth,
   getMyRecruiterJobs
+)
+
+router.get(
+  "/admin/company-jobs",
+  requireAuth,
+  requireAdmin,
+  getAdminCompanyJobs
 )
 
 // Public recruiter profile jobs

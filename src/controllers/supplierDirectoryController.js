@@ -3,6 +3,9 @@ import prisma from "../prismaClient.js"
 /**
  * Recruiter submits directory (FIRST TIME)
  */
+/**
+ * Recruiter submits directory (FIRST TIME)
+ */
 export const createDirectory = async (req, res) => {
   try {
     const user = req.user
@@ -22,34 +25,33 @@ export const createDirectory = async (req, res) => {
       email,
       tradeNames,
       videoGallery,
-      socialLinks,        
+      socialLinks,
       productSupplies,
     } = req.body
 
-   const directory = await prisma.supplierDirectory.create({
-  data: {
-    name,
-    slug,
-    description,
-    website,
-    logoUrl,
-    coverImageUrl,
-    phoneNumber,
-    email,
-    tradeNames,
-    videoGallery,
-    socialLinks,
-    productSupplies,
+    const directory = await prisma.supplierDirectory.create({
+      data: {
+        name,
+        slug,
+        description,
+        website,
+        logoUrl,
+        coverImageUrl,
+        phoneNumber,
+        email,
+        tradeNames,
+        videoGallery,
+        socialLinks,
+        productSupplies,
 
-    // 🔥 THIS LINE FIXES EVERYTHING
-    companyId: user.companyId,
+        companyId: user.companyId,
+        status: "PENDING",
+        isLiveEditable: false,
 
-    status: "PENDING",
-    isLiveEditable: false,
-    submittedById: user.userId,
-  },
-})
-
+        // ✅ FIX
+        submittedById: user.id,
+      },
+    })
 
     res.status(201).json(directory)
   } catch (err) {
@@ -57,7 +59,6 @@ export const createDirectory = async (req, res) => {
     res.status(500).json({ error: "Failed to create directory" })
   }
 }
-
 
 /**
  * Admin approves directory (ONLY ONCE)
@@ -99,7 +100,7 @@ export const approveDirectory = async (req, res) => {
 }
 
 /**
- * Get single recruiter directory by ID (for edit page)
+ * Get single recruiter directory by ID
  */
 export const getMyDirectoryById = async (req, res) => {
   try {
@@ -113,7 +114,7 @@ export const getMyDirectoryById = async (req, res) => {
     const directory = await prisma.supplierDirectory.findFirst({
       where: {
         id: directoryId,
-        submittedById: user.userId,
+        submittedById: user.id, // ✅ FIX
       },
     })
 
@@ -129,7 +130,7 @@ export const getMyDirectoryById = async (req, res) => {
 }
 
 /**
- * Get recruiter directories (My directories)
+ * Get recruiter directories
  */
 export const getMyDirectories = async (req, res) => {
   try {
@@ -141,11 +142,9 @@ export const getMyDirectories = async (req, res) => {
 
     const directories = await prisma.supplierDirectory.findMany({
       where: {
-        submittedById: user.userId,
+        submittedById: user.id, // ✅ FIX
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
       select: {
         id: true,
         name: true,
@@ -163,7 +162,6 @@ export const getMyDirectories = async (req, res) => {
   }
 }
 
-
 /**
  * Recruiter updates directory (LIVE after approval)
  */
@@ -180,7 +178,7 @@ export const updateDirectory = async (req, res) => {
       return res.status(404).json({ error: "Directory not found" })
     }
 
-    if (directory.submittedById !== user.userId) {
+    if (directory.submittedById !== user.id) { // ✅ FIX
       return res.status(403).json({ error: "Not allowed" })
     }
 
@@ -198,12 +196,11 @@ export const updateDirectory = async (req, res) => {
       email,
       tradeNames,
       videoGallery,
-      socialLinks,        
+      socialLinks,
       productSupplies,
       slug,
     } = req.body
 
-    // 🚫 Slug is locked forever
     if (slug && slug !== directory.slug) {
       return res.status(400).json({ error: "Slug cannot be changed" })
     }
@@ -220,7 +217,7 @@ export const updateDirectory = async (req, res) => {
         email,
         tradeNames,
         videoGallery,
-        socialLinks,        
+        socialLinks,
         productSupplies,
       },
     })
@@ -230,7 +227,7 @@ export const updateDirectory = async (req, res) => {
         action: "DIRECTORY_UPDATED_LIVE",
         entity: "SupplierDirectory",
         entityId: updated.id,
-        userId: user.userId,
+        userId: user.id, // ✅ FIX
       },
     })
 
@@ -273,3 +270,41 @@ export const getSupplierBySlug = async (req, res) => {
   res.json(supplier)
 }
 
+
+/**
+ * ADMIN: Get all directories (for review & management)
+ */
+export const getAllDirectoriesForAdmin = async (req, res) => {
+  try {
+    const directories = await prisma.supplierDirectory.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        submittedBy: {
+          select: {
+            id: true,
+            email: true,
+            username: true,
+          },
+        },
+        approvedBy: {
+          select: {
+            id: true,
+            email: true,
+          },
+        },
+      },
+    })
+
+    res.json(directories)
+  } catch (err) {
+    console.error("Admin fetch directories error:", err)
+    res.status(500).json({ error: "Failed to fetch directories" })
+  }
+}

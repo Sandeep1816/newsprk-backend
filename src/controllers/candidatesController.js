@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma.js"
 
+/* 🌍 Public candidate profile */
 export async function getCandidateProfile(req, res) {
   try {
     const { username } = req.params
@@ -9,6 +10,7 @@ export async function getCandidateProfile(req, res) {
       select: {
         username: true,
         fullName: true,
+        headline: true,
         about: true,
         location: true,
         avatarUrl: true,
@@ -27,20 +29,49 @@ export async function getCandidateProfile(req, res) {
   }
 }
 
-export async function onboardCandidate(req, res) {
+/* 🔐 Logged-in candidate profile */
+export async function getMyCandidateProfile(req, res) {
   try {
-    console.log("DEBUG req.user =", req.user)
-
     if (req.user.role !== "candidate") {
       return res.status(403).json({ error: "Not allowed" })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: {
+        email: true,
+        username: true,
+        fullName: true,
+        headline: true,
+        about: true,
+        location: true,
+        avatarUrl: true,
+        websiteUrl: true,
+      },
+    })
+
+    res.json(user)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: "Failed to fetch my profile" })
+  }
+}
+
+/* 🆕 First-time onboarding */
+export async function onboardCandidate(req, res) {
+  try {
+    if (req.user.role !== "candidate") {
+      return res.status(403).json({ error: "Not allowed" })
+    }
+
+    if (req.user.isOnboarded) {
+      return res.status(400).json({ error: "Candidate already onboarded" })
     }
 
     const { fullName, headline, location, about } = req.body
 
     const user = await prisma.user.update({
-      where: {
-        id: req.user.id,
-      },
+      where: { id: req.user.id },
       data: {
         fullName,
         headline,
@@ -57,3 +88,37 @@ export async function onboardCandidate(req, res) {
   }
 }
 
+/* ✏️ Edit profile */
+export async function updateCandidateProfile(req, res) {
+  try {
+    if (req.user.role !== "candidate") {
+      return res.status(403).json({ error: "Not allowed" })
+    }
+
+    const {
+      fullName,
+      headline,
+      location,
+      about,
+      avatarUrl,
+      websiteUrl,
+    } = req.body
+
+    const updatedUser = await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        fullName,
+        headline,
+        location,
+        about,
+        avatarUrl,
+        websiteUrl,
+      },
+    })
+
+    res.json(updatedUser)
+  } catch (err) {
+    console.error("Update profile error:", err)
+    res.status(500).json({ error: "Failed to update profile" })
+  }
+}
