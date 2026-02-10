@@ -5,7 +5,8 @@ import {
   getUpcomingEvents,
   getEventBySlug,
   getAllEventsAdmin,
-  updateEvent
+  updateEvent,
+  incrementEventView
 } from "../controllers/eventsController.js"
 
 import { requireAuth, requireAdmin } from "../middleware/auth.js"
@@ -23,6 +24,7 @@ router.put("/publish/:id", requireAuth, requireAdmin, publishEvent)
 /**
  * 🌍 PUBLIC ROUTES (LAST)
  */
+router.post("/:slug/view", incrementEventView)
 router.get("/", getUpcomingEvents)
 router.get("/:slug", getEventBySlug)
 

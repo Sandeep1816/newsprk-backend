@@ -250,36 +250,71 @@ export async function deactivateJob(req, res) {
 /**
  * Admin: company-wise jobs with count
  */
-export async function getAdminCompanyJobs(req, res) {
-  try {
-    const companies = await prisma.company.findMany({
-      include: {
-        jobs: {
-          where: { isActive: true },
-          orderBy: { createdAt: "desc" },
-        },
-        _count: {
-          select: {
-            jobs: {
-              where: { isActive: true },
-            },
+export const getAdminCompanyJobs = async (req, res) => {
+  // console.log("🔥 getAdminCompanyJobs HIT")
+
+  const companies = await prisma.company.findMany({
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      jobs: {
+        where: { isActive: true },
+        select: {
+          id: true,
+          title: true,
+          location: true,
+          employmentType: true,
+          createdAt: true,
+          views: true,
+          _count: {
+            select: { applications: true }, // ✅ THIS
           },
         },
       },
-      orderBy: { name: "asc" },
+    },
+  })
+
+  const formatted = companies.map(company => ({
+    id: company.id,
+    name: company.name,
+    slug: company.slug,
+    jobsCount: company.jobs.length,
+    jobs: company.jobs.map(job => ({
+      id: job.id,
+      title: job.title,
+      location: job.location,
+      employmentType: job.employmentType,
+      createdAt: job.createdAt,
+      views: job.views,
+      appliedCount: job._count.applications, // ✅ FIX
+    })),
+  }))
+
+  res.json(formatted)
+}
+
+
+
+/**
+ * 👁️ PUBLIC: Increment job view
+ */
+export async function incrementJobView(req, res) {
+  try {
+    const { slug } = req.params
+
+    await prisma.job.update({
+      where: { slug },
+      data: {
+        views: { increment: 1 },
+      },
     })
 
-    res.json(
-      companies.map(c => ({
-        id: c.id,
-        name: c.name,
-        slug: c.slug,
-        jobsCount: c._count.jobs,
-        jobs: c.jobs,
-      }))
-    )
+    res.json({ success: true })
   } catch (err) {
-    console.error("Admin company jobs error:", err)
-    res.status(500).json({ error: "Failed to fetch admin jobs" })
+    console.error("Increment job view error:", err)
+    res.status(500).json({ error: "Failed to increment job view" })
   }
 }
+
+

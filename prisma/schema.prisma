@@ -123,6 +123,7 @@ model Job {
   location       String
   isRemote       Boolean @default(false)
   isActive       Boolean @default(true)
+  views          Int     @default(0)
 
   companyId  Int
   postedById Int
@@ -229,6 +230,7 @@ model SupplierDirectory {
   isLiveEditable Boolean         @default(false)
 
   views          Int             @default(0)
+  connections    Int             @default(0)
 
   submittedById Int
   approvedById  Int?
@@ -318,6 +320,7 @@ model Event {
   calendarUrl String?
 
   status      EventStatus @default(DRAFT)
+  views       Int      @default(0)
 
   createdById Int
   approvedById Int?

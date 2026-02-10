@@ -193,3 +193,28 @@ export const updateEvent = async (req, res) => {
   }
 }
 
+/**
+ * 👁️ PUBLIC: Increment Event View
+ */
+export const incrementEventView = async (req, res) => {
+  try {
+    const { slug } = req.params
+
+    await prisma.event.update({
+      where: { slug },
+      data: {
+        views: {
+          increment: 1,
+        },
+      },
+    })
+
+    res.json({ success: true })
+  } catch (error) {
+    console.error("Increment Event View Error:", error)
+    res.status(500).json({
+      success: false,
+      message: "Failed to increment view",
+    })
+  }
+}

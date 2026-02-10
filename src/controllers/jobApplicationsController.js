@@ -130,3 +130,48 @@ export async function updateApplicationStatus(req, res) {
     res.status(500).json({ error: "Failed to update status" })
   }
 }
+
+
+// export const getAdminCompanyJobs = async (req, res) => {
+//   console.log("🔥 getAdminCompanyJobs HIT")
+
+//   const companies = await prisma.company.findMany({
+//     select: {
+//       id: true,
+//       name: true,
+//       slug: true,
+//       jobs: {
+//         where: { isActive: true },
+//         select: {
+//           id: true,
+//           title: true,
+//           location: true,
+//           employmentType: true,
+//           createdAt: true,
+//           views: true,
+//           _count: {
+//             select: { applications: true }, // ✅ THIS
+//           },
+//         },
+//       },
+//     },
+//   })
+
+//   const formatted = companies.map(company => ({
+//     id: company.id,
+//     name: company.name,
+//     slug: company.slug,
+//     jobsCount: company.jobs.length,
+//     jobs: company.jobs.map(job => ({
+//       id: job.id,
+//       title: job.title,
+//       location: job.location,
+//       employmentType: job.employmentType,
+//       createdAt: job.createdAt,
+//       views: job.views,
+//       appliedCount: job._count.applications, // ✅ FIX
+//     })),
+//   }))
+
+//   res.json(formatted)
+// }

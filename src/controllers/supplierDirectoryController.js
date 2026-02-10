@@ -308,3 +308,22 @@ export const getAllDirectoriesForAdmin = async (req, res) => {
     res.status(500).json({ error: "Failed to fetch directories" })
   }
 }
+
+
+export const trackDirectoryConnection = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    await prisma.supplierDirectory.update({
+      where: { id: Number(id) },
+      data: {
+        connections: { increment: 1 },
+      },
+    })
+
+    res.json({ success: true })
+  } catch (err) {
+    console.error("Track connection error:", err)
+    res.status(500).json({ error: "Failed to track connection" })
+  }
+}

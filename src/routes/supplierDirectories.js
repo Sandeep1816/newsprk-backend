@@ -7,7 +7,8 @@ import {
   getSupplierBySlug,
   getMyDirectories,
   getMyDirectoryById,
-  getAllDirectoriesForAdmin
+  getAllDirectoriesForAdmin,
+  trackDirectoryConnection
 } from "../controllers/supplierDirectoryController.js"
 
 import { requireAuth, requireAdmin } from "../middleware/auth.js"
@@ -32,6 +33,11 @@ router.get(
   requireAuth,
   requireAdmin,
   getAllDirectoriesForAdmin
+)
+
+router.post(
+  "/:id/connection",
+  trackDirectoryConnection
 )
 
 

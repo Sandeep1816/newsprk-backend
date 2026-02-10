@@ -7,7 +7,8 @@ import {
   deactivateJob,
   getJobsByRecruiter,
   getMyRecruiterJobs,
-  getAdminCompanyJobs
+  getAdminCompanyJobs,
+  incrementJobView
 } from "../controllers/jobsController.js"
 
 const router = express.Router()
@@ -16,6 +17,9 @@ const router = express.Router()
 
 // Job feed
 router.get("/", getAllJobs)
+
+// 👁️ Increment job view
+router.post("/:slug/view", incrementJobView)
 
 // Job detail
 router.get("/:slug", getJobBySlug)
@@ -48,5 +52,6 @@ router.post("/", requireAuth, createJob)
 /* ================= ADMIN ================= */
 
 router.put("/:id/deactivate", requireAuth, requireAdmin, deactivateJob)
+
 
 export default router
