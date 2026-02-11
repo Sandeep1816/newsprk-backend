@@ -7,7 +7,8 @@ import {
   getAllEventsAdmin,
   updateEvent,
   incrementEventView,
-  registerForEvent
+  registerForEvent,
+  getEventRegistrations
 } from "../controllers/eventsController.js"
 
 import { requireAuth, requireAdmin } from "../middleware/auth.js"
@@ -21,6 +22,13 @@ router.post("/", requireAuth, requireAdmin, createEvent)
 router.get("/admin/all", requireAuth, requireAdmin, getAllEventsAdmin)
 router.put("/:id", requireAuth, requireAdmin, updateEvent) 
 router.put("/publish/:id", requireAuth, requireAdmin, publishEvent)
+router.get(
+  "/admin/:id/registrations",
+  requireAuth,
+  requireAdmin,
+  getEventRegistrations
+)
+
 
 /**
  * 🌍 PUBLIC ROUTES (LAST)

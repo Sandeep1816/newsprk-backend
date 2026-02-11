@@ -136,10 +136,16 @@ export const getEventBySlug = async (req, res) => {
 export const getAllEventsAdmin = async (req, res) => {
   try {
     const events = await prisma.event.findMany({
-      orderBy: {
-        createdAt: "desc"
-      }
-    })
+  orderBy: {
+    createdAt: "desc",
+  },
+  include: {
+    _count: {
+      select: { registrations: true },
+    },
+  },
+})
+
 
     res.json(events)
   } catch (error) {
@@ -299,12 +305,20 @@ export const registerForEvent = async (req, res) => {
     }
 
     // 6️⃣ Create registration
-    const registration = await prisma.eventRegistration.create({
-      data: {
-        eventId: event.id,
-        ...formData,
-      },
-    })
+const registration = await prisma.eventRegistration.create({
+  data: {
+    eventId: event.id,
+    fullName: formData.fullName,
+    email: formData.email,
+    phone: formData.phone,
+    companyName: formData.companyName || null,
+    jobTitle: formData.jobTitle || null,
+    country: formData.country || null,
+    specialRequirements: formData.specialRequirements || null,
+  },
+})
+
+    
 
     return res.status(201).json({
       success: true,
@@ -321,6 +335,28 @@ export const registerForEvent = async (req, res) => {
   }
 }
 
+export const getEventRegistrations = async (req, res) => {
+  try {
+    const { id } = req.params
+
+    const registrations = await prisma.eventRegistration.findMany({
+      where: {
+        eventId: Number(id),
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    })
+
+    res.json(registrations)
+  } catch (error) {
+    console.error("❌ Get Registrations Error:", error)
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch registrations",
+    })
+  }
+}
 
 
 
