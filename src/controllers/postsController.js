@@ -258,3 +258,22 @@ export const incrementPostView = async (req, res) => {
     res.status(404).json({ success: false, message: "Post not found" });
   }
 };
+
+
+export const incrementPostShare = async (req, res) => {
+  try {
+    const { slug } = req.params
+
+    await prisma.post.update({
+      where: { slug },
+      data: {
+        shares: { increment: 1 },
+      },
+    })
+
+    res.json({ success: true })
+  } catch (err) {
+    console.error("Share increment error:", err)
+    res.status(500).json({ error: "Failed to increment share" })
+  }
+}

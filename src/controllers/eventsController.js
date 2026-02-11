@@ -218,3 +218,109 @@ export const incrementEventView = async (req, res) => {
     })
   }
 }
+
+/**
+ * 🌍 PUBLIC: Register for Event (WITH CAPTCHA VERIFICATION)
+ */
+export const registerForEvent = async (req, res) => {
+  try {
+    const { slug } = req.params
+    const { captchaToken, ...formData } = req.body
+
+    // 1️⃣ Check captcha exists
+    if (!captchaToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Captcha token missing",
+      })
+    }
+
+    // 2️⃣ Ensure secret key exists
+    if (!process.env.TURNSTILE_SECRET_KEY) {
+      console.error("❌ TURNSTILE_SECRET_KEY not set")
+      return res.status(500).json({
+        success: false,
+        message: "Server configuration error",
+      })
+    }
+
+    // 3️⃣ Verify Turnstile (NO remoteip – important)
+    const verifyResponse = await fetch(
+      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          secret: process.env.TURNSTILE_SECRET_KEY,
+          response: captchaToken,
+        }).toString(),
+      }
+    )
+
+    const verifyData = await verifyResponse.json()
+
+    console.log("🔐 Turnstile full response:", verifyData)
+
+    if (!verifyData.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Captcha verification failed",
+        errorCodes: verifyData["error-codes"],
+      })
+    }
+
+    // 4️⃣ Check event exists
+    const event = await prisma.event.findUnique({
+      where: { slug },
+    })
+
+    if (!event || event.status !== "PUBLISHED") {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found",
+      })
+    }
+
+    // 5️⃣ Prevent duplicate registration
+    const existing = await prisma.eventRegistration.findFirst({
+      where: {
+        eventId: event.id,
+        email: formData.email,
+      },
+    })
+
+    if (existing) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already registered for this event.",
+      })
+    }
+
+    // 6️⃣ Create registration
+    const registration = await prisma.eventRegistration.create({
+      data: {
+        eventId: event.id,
+        ...formData,
+      },
+    })
+
+    return res.status(201).json({
+      success: true,
+      message: "Registration successful",
+      registration,
+    })
+
+  } catch (error) {
+    console.error("❌ Register Event Error:", error)
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    })
+  }
+}
+
+
+
+

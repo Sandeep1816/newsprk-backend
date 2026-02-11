@@ -52,6 +52,7 @@ model Post {
 
   publishedAt DateTime?
   views       Int       @default(0)
+  shares      Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -331,4 +332,37 @@ model Event {
 
   createdBy   User  @relation("CreatedEvents", fields: [createdById], references: [id])
   approvedBy  User? @relation("ApprovedEvents", fields: [approvedById], references: [id])
+
+  registrations EventRegistration[]
+}
+
+model EventRegistration {
+  id        Int      @id @default(autoincrement())
+
+  eventId   Int
+  event     Event    @relation(fields: [eventId], references: [id])
+
+  fullName  String
+  email     String
+  phone     String
+
+  companyName String?
+  jobTitle    String?
+  country     String?
+  city        String?
+
+  industry    String?
+  experience  String?
+  attendeeType String?
+
+  ticketType  String?
+  interests   Json?
+
+  specialRequirements String? @db.LongText
+
+  status      String   @default("REGISTERED")
+
+  createdAt   DateTime @default(now())
+
+  @@index([eventId])
 }

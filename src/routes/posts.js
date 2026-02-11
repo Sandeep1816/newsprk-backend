@@ -8,7 +8,8 @@ import {
   updatePost,
   deletePost,
   getRecruiterArticleBySlug,
-  incrementPostView
+  incrementPostView,
+  incrementPostShare
 } from "../controllers/postsController.js";
 import { requireAuth, requireAdmin } from "../middleware/auth.js";
 
@@ -20,6 +21,8 @@ router.get("/", getAllPosts);
 // ✅ SLUG ROUTES FIRST (VERY IMPORTANT)
 router.get("/slug/:slug", getPostBySlug);
 router.post("/slug/:slug/view", incrementPostView);
+router.post("/:slug/share", incrementPostShare)
+
 
 // ❗ ID ROUTE AFTER slug routes
 router.get("/:id", getPostById);
