@@ -9,7 +9,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 ====================================================== */
 export const createMagazine = async (req, res) => {
   try {
-    const { title, description, coverImageUrl, pdfUrl, status } = req.body;
+    const { title, description, coverImageUrl, pdfUrl,flipbookPages, status } = req.body;
 
     if (!title || !pdfUrl) {
       return res.status(400).json({ error: "Title and PDF are required" });
@@ -34,6 +34,7 @@ export const createMagazine = async (req, res) => {
         description,
         coverImageUrl,
         pdfUrl,
+        flipbookPages,
         status: status || "DRAFT",
         createdById: req.user.id,
         publishedAt: status === "PUBLISHED" ? new Date() : null,

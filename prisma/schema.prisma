@@ -385,6 +385,7 @@ model Magazine {
 
   coverImageUrl String?
   pdfUrl        String   // Cloudinary PDF URL
+  flipbookPages Json? 
 
   status       MagazineStatus @default(DRAFT)
 
