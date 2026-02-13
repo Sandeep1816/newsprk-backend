@@ -10,11 +10,17 @@ cloudinary.config({
 
 const storage = new CloudinaryStorage({
   cloudinary,
-  params: {
-    folder: "mould-tech",
-    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+  params: async (req, file) => {
+    const isPdf = file.mimetype === "application/pdf"
+
+    return {
+      folder: "mould-tech",
+      resource_type: isPdf ? "raw" : "image", // 🔥 dynamic
+      allowed_formats: ["jpg", "jpeg", "png", "webp", "pdf"],
+    }
   },
-});
+})
+
 
 const upload = multer({ storage });
 
@@ -24,6 +30,9 @@ export const uploadImage = [
     if (!req.file?.path) {
       return res.status(400).json({ error: "Upload failed" });
     }
-    res.json({ imageUrl: req.file.path });
+
+    res.json({
+      imageUrl: req.file.path,
+    });
   },
 ];

@@ -9,9 +9,8 @@ export async function createJob(req, res) {
       return res.status(403).json({ error: "Not allowed" })
     }
 
-    // 1️⃣ Fetch recruiter with company
     const recruiter = await prisma.user.findUnique({
-      where: { id: req.user.userId },
+      where: { id: req.user.id }, // ✅ FIXED
       select: { companyId: true },
     })
 
@@ -21,7 +20,6 @@ export async function createJob(req, res) {
       })
     }
 
-    // 2️⃣ Create job with companyId from DB
     const job = await prisma.job.create({
       data: {
         title: req.body.title,
@@ -32,18 +30,18 @@ export async function createJob(req, res) {
         salaryRange: req.body.salaryRange,
         location: req.body.location,
         isRemote: req.body.isRemote ?? false,
-
-        companyId: recruiter.companyId, // ✅ FIX
-        postedById: req.user.userId,
+        companyId: recruiter.companyId,
+        postedById: req.user.id, // ✅ FIXED
       },
     })
 
     res.json(job)
   } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: "Job creation failed" })
+    console.error("JOB CREATE ERROR:", err)
+    res.status(500).json({ error: err.message })
   }
 }
+
 
 
 /**
@@ -140,7 +138,7 @@ export async function getMyRecruiterJobs(req, res) {
 
     const jobs = await prisma.job.findMany({
       where: {
-        postedById: req.user.userId,
+        postedById: req.user.id,
         isActive: true,
       },
       orderBy: { createdAt: "desc" },
@@ -163,7 +161,8 @@ export async function getRecruiterDashboard(req, res) {
       return res.status(403).json({ error: "Not allowed" })
     }
 
-    const recruiterId = req.user.userId
+    const recruiterId = req.user.id
+
 
     // 1️⃣ Jobs count
     const jobsCount = await prisma.job.count({

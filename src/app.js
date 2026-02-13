@@ -106,6 +106,7 @@ import bannerUploadRoutes from "./routes/bannerUpload.routes.js";
 import eventRoutes from "./routes/events.js";
 import calendarRoutes from "./routes/calendar.js";
 import publicRoutes from "./routes/public.js";
+import magazineRoutes from "./routes/magazineRoutes.js";
 
 /* ======================================================
    ✅ FIX: Proper .env loading (IMPORTANT FOR TURNSTILE)
@@ -168,6 +169,7 @@ app.use("/api/banners", bannerUploadRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/calendar", calendarRoutes);
 app.use("/api", publicRoutes);
+app.use("/api/magazines", magazineRoutes);
 
 /* ==========================
    🚀 Start Server
