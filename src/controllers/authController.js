@@ -1,225 +1,207 @@
-// // src/controllers/authController.js
-// import prisma from "../prismaClient.js"
-// import bcrypt from "bcrypt"
-// import jwt from "jsonwebtoken"
-
-// const JWT_SECRET = process.env.JWT_SECRET || "changeme"
-// const SALT_ROUNDS = 10
-
-// // ================= REGISTER =================
-// export const register = async (req, res) => {
-//   try {
-//     const { email, password, role } = req.body
-
-//     if (!email || !password) {
-//       return res.status(400).json({ error: "Email and password required" })
-//     }
-
-//     // 🔒 prevent admin signup
-//     const safeRole = role === "recruiter" ? "recruiter" : "candidate"
-
-//     const existing = await prisma.user.findUnique({ where: { email } })
-//     if (existing) {
-//       return res.status(409).json({ error: "User already exists" })
-//     }
-
-//     const hashed = await bcrypt.hash(password, SALT_ROUNDS)
-
-//     // ✅ auto username
-//     const base = email.split("@")[0]
-//     const username = `${base}_${Date.now().toString().slice(-5)}`
-
-//     const user = await prisma.user.create({
-//       data: {
-//         email,
-//         password: hashed,
-//         role: safeRole,
-//         username,
-//       },
-//     })
-
-//     const token = jwt.sign(
-//       { userId: user.id, role: user.role, email: user.email },
-//       JWT_SECRET,
-//       { expiresIn: "7d" }
-//     )
-
-//     res.status(201).json({
-//       token,
-//       user: {
-//         id: user.id,
-//         email: user.email,
-//         role: user.role,
-//         username: user.username,
-//         isOnboarded: user.isOnboarded, // ✅ IMPORTANT
-//         companyId: user.companyId ?? null,
-//       },
-//     })
-//   } catch (err) {
-//     console.error(err)
-//     res.status(500).json({ error: "Internal server error" })
-//   }
-// }
-
-// // ================= LOGIN =================
-// export const login = async (req, res) => {
-//   try {
-//     const { email, password } = req.body
-//     if (!email || !password) {
-//       return res.status(400).json({ error: "Email and password required" })
-//     }
-
-//     const user = await prisma.user.findUnique({
-//       where: { email },
-//       select: {
-//         id: true,
-//         email: true,
-//         password: true,
-//         role: true,
-//         username: true,
-//         isOnboarded: true, // 🔥 REQUIRED
-//         companyId: true,   // 🔥 REQUIRED
-//       },
-//     })
-
-//     if (!user) {
-//       return res.status(401).json({ error: "Invalid credentials" })
-//     }
-
-//     const ok = await bcrypt.compare(password, user.password)
-//     if (!ok) {
-//       return res.status(401).json({ error: "Invalid credentials" })
-//     }
-
-//     const token = jwt.sign(
-//       { userId: user.id, role: user.role, email: user.email },
-//       JWT_SECRET,
-//       { expiresIn: "7d" }
-//     )
-
-//     res.json({
-//       token,
-//       user: {
-//         id: user.id,
-//         email: user.email,
-//         role: user.role,
-//         username: user.username,
-//         isOnboarded: user.isOnboarded, // ✅ FIX
-//         companyId: user.companyId ?? null,
-//       },
-//     })
-//   } catch (err) {
-//     console.error(err)
-//     res.status(500).json({ error: "Internal server error" })
-//   }
-// }
-
-
 // src/controllers/authController.js
+
 import prisma from "../prismaClient.js"
 import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
+import crypto from "crypto"
+import { Resend } from "resend"
+
+const resend = new Resend(process.env.RESEND_API_KEY)
+const MAIL_FROM = process.env.MAIL_FROM
 
 const JWT_SECRET = process.env.JWT_SECRET || "changeme"
-const SALT_ROUNDS = 10
+const SALT_ROUNDS = 12
 
-// ================= REGISTER =================
+/* ================= PASSWORD VALIDATION ================= */
+
+const strongPasswordRegex =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/
+
+const generateOtp = () =>
+  Math.floor(100000 + Math.random() * 900000).toString()
+
+const hashValue = (value) =>
+  crypto.createHash("sha256").update(value).digest("hex")
+
+/* ================= REGISTER ================= */
+
 export const register = async (req, res) => {
   try {
     const { email, password, role } = req.body
 
-    if (!email || !password) {
+    if (!email || !password)
       return res.status(400).json({ error: "Email and password required" })
-    }
 
-    const safeRole = role === "recruiter" ? "recruiter" : "candidate"
+    if (!strongPasswordRegex.test(password)) {
+      return res.status(400).json({
+        error:
+          "Password must be 8+ chars with uppercase, lowercase, number, symbol",
+      })
+    }
 
     const existing = await prisma.user.findUnique({ where: { email } })
-    if (existing) {
+    if (existing)
       return res.status(409).json({ error: "User already exists" })
-    }
 
-    const hashed = await bcrypt.hash(password, SALT_ROUNDS)
+    const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS)
 
-    const base = email.split("@")[0]
-    const username = `${base}_${Date.now().toString().slice(-5)}`
+    const otp = generateOtp()
+    const otpHash = hashValue(otp)
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000)
 
-    const user = await prisma.user.create({
+    const username =
+      email.split("@")[0] + "_" + Date.now().toString().slice(-5)
+
+    await prisma.user.create({
       data: {
         email,
-        password: hashed,
-        role: safeRole,
+        password: hashedPassword,
+        role: role === "recruiter" ? "recruiter" : "candidate",
         username,
+        otpHash,
+        otpExpiry,
       },
     })
 
-    // 🔥 FIXED JWT PAYLOAD
-    const token = jwt.sign(
-      {
-        id: user.id,                 // ✅ use `id`
-        role: user.role,
-        email: user.email,
-        companyId: user.companyId,   // ✅ include companyId
-      },
-      JWT_SECRET,
-      { expiresIn: "7d" }
-    )
+    await resend.emails.send({
+  from: `MoldMaking Technology <${MAIL_FROM}>`,
+  to: email,
+  subject: "Verify Your Email",
+  html: `
+    <h2>Email Verification</h2>
+    <p>Your OTP:</p>
+    <h1 style="letter-spacing:4px">${otp}</h1>
+    <p>Expires in 10 minutes.</p>
+  `,
+})
 
-    res.status(201).json({
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        username: user.username,
-        isOnboarded: user.isOnboarded,
-        companyId: user.companyId ?? null,
-      },
-    })
+
+    res.status(201).json({ message: "OTP sent to email" })
   } catch (err) {
     console.error(err)
-    res.status(500).json({ error: "Internal server error" })
+    res.status(500).json({ error: "Registration failed" })
   }
 }
 
-// ================= LOGIN =================
+/* ================= VERIFY OTP ================= */
+
+export const verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body
+
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user || !user.otpHash)
+      return res.status(400).json({ error: "Invalid request" })
+
+    if (user.otpExpiry < new Date())
+      return res.status(400).json({ error: "OTP expired" })
+
+    if (hashValue(otp) !== user.otpHash)
+      return res.status(400).json({ error: "Invalid OTP" })
+
+    await prisma.user.update({
+      where: { email },
+      data: {
+        emailVerified: true,
+        otpHash: null,
+        otpExpiry: null,
+      },
+    })
+
+    res.json({ message: "Email verified successfully" })
+  } catch {
+    res.status(500).json({ error: "Verification failed" })
+  }
+}
+
+/* ================= RESEND OTP ================= */
+
+export const resendOtp = async (req, res) => {
+  try {
+    const { email } = req.body
+
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user) return res.status(404).json({ error: "User not found" })
+
+    if (user.emailVerified)
+      return res.status(400).json({ error: "Already verified" })
+
+    const otp = generateOtp()
+
+    await prisma.user.update({
+      where: { email },
+      data: {
+        otpHash: hashValue(otp),
+        otpExpiry: new Date(Date.now() + 10 * 60 * 1000),
+      },
+    })
+
+    await resend.emails.send({
+      from: `MoldMaking Technology <${MAIL_FROM}>`,
+      to: email,
+      subject: "Resend OTP",
+      html: `<h2>Your new OTP: ${otp}</h2>`,
+    })
+
+    res.json({ message: "OTP resent successfully" })
+  } catch {
+    res.status(500).json({ error: "Failed to resend OTP" })
+  }
+}
+
+/* ================= LOGIN ================= */
+
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body
 
-    if (!email || !password) {
-      return res.status(400).json({ error: "Email and password required" })
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user)
+      return res.status(401).json({ error: "Invalid credentials" })
+
+    if (user.lockUntil && user.lockUntil > new Date())
+      return res.status(403).json({ error: "Account locked temporarily" })
+
+    if (!user.emailVerified)
+      return res.status(403).json({ error: "Verify your email first" })
+
+    const valid = await bcrypt.compare(password, user.password)
+
+    if (!valid) {
+      const attempts = user.failedLoginAttempts + 1
+
+      if (attempts >= 5) {
+        await prisma.user.update({
+          where: { email },
+          data: {
+            failedLoginAttempts: 0,
+            lockUntil: new Date(Date.now() + 15 * 60 * 1000),
+          },
+        })
+        return res.status(403).json({
+          error: "Account locked for 15 minutes",
+        })
+      }
+
+      await prisma.user.update({
+        where: { email },
+        data: { failedLoginAttempts: attempts },
+      })
+
+      return res.status(401).json({ error: "Invalid credentials" })
     }
 
-    const user = await prisma.user.findUnique({
+    await prisma.user.update({
       where: { email },
-      select: {
-        id: true,
-        email: true,
-        password: true,
-        role: true,
-        username: true,
-        isOnboarded: true,
-        companyId: true,
-      },
+      data: { failedLoginAttempts: 0, lockUntil: null },
     })
 
-    if (!user) {
-      return res.status(401).json({ error: "Invalid credentials" })
-    }
-
-    const ok = await bcrypt.compare(password, user.password)
-    if (!ok) {
-      return res.status(401).json({ error: "Invalid credentials" })
-    }
-
-    // 🔥 FIXED JWT PAYLOAD
     const token = jwt.sign(
       {
-        id: user.id,               // ✅ consistent key
+        id: user.id,
         role: user.role,
         email: user.email,
-        companyId: user.companyId, // ✅ REQUIRED
+        companyId: user.companyId,
       },
       JWT_SECRET,
       { expiresIn: "7d" }
@@ -236,8 +218,71 @@ export const login = async (req, res) => {
         companyId: user.companyId ?? null,
       },
     })
-  } catch (err) {
-    console.error(err)
-    res.status(500).json({ error: "Internal server error" })
+  } catch {
+    res.status(500).json({ error: "Login failed" })
+  }
+}
+
+/* ================= FORGOT PASSWORD ================= */
+
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user) return res.status(404).json({ error: "User not found" })
+
+    const otp = generateOtp()
+
+    await prisma.user.update({
+      where: { email },
+      data: {
+        resetOtpHash: hashValue(otp),
+        resetOtpExpiry: new Date(Date.now() + 10 * 60 * 1000),
+      },
+    })
+
+    await resend.emails.send({
+      from: `MoldMaking Technology <${MAIL_FROM}>`,
+      to: email,
+      subject: "Password Reset OTP",
+      html: `<h2>Your reset OTP: ${otp}</h2>`,
+    })
+
+    res.json({ message: "Reset OTP sent" })
+  } catch {
+    res.status(500).json({ error: "Failed to send reset OTP" })
+  }
+}
+
+/* ================= RESET PASSWORD ================= */
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body
+
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user || !user.resetOtpHash)
+      return res.status(400).json({ error: "Invalid request" })
+
+    if (user.resetOtpExpiry < new Date())
+      return res.status(400).json({ error: "OTP expired" })
+
+    if (hashValue(otp) !== user.resetOtpHash)
+      return res.status(400).json({ error: "Invalid OTP" })
+
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS)
+
+    await prisma.user.update({
+      where: { email },
+      data: {
+        password: hashedPassword,
+        resetOtpHash: null,
+        resetOtpExpiry: null,
+      },
+    })
+
+    res.json({ message: "Password reset successful" })
+  } catch {
+    res.status(500).json({ error: "Reset failed" })
   }
 }

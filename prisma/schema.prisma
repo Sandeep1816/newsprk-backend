@@ -156,6 +156,20 @@ model User {
   email     String   @unique
   password  String
   role      String   @default("candidate")
+
+   // Email Verification
+  emailVerified Boolean  @default(false)
+  otpHash       String?
+  otpExpiry     DateTime?
+
+  // Forgot Password
+  resetOtpHash   String?
+  resetOtpExpiry DateTime?
+
+  // Security
+  failedLoginAttempts Int @default(0)
+  lockUntil           DateTime?
+
   createdAt DateTime @default(now())
 
   username   String  @unique

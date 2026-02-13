@@ -120,6 +120,7 @@ dotenv.config({
 });
 
 console.log("🔑 TURNSTILE_SECRET_KEY Loaded?:", !!process.env.TURNSTILE_SECRET_KEY);
+console.log("RESEND KEY EXISTS:", !!process.env.RESEND_API_KEY)
 
 /* ======================================================
    🚀 APP INIT

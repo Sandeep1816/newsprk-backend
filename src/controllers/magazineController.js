@@ -3,6 +3,7 @@ import slugify from "slugify";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+const MAIL_FROM = process.env.MAIL_FROM
 
 /* ======================================================
    CREATE MAGAZINE (ADMIN ONLY)
@@ -103,7 +104,7 @@ export const registerMagazine = async (req, res) => {
     ====================================================== */
 
   await resend.emails.send({
-  from: "MoldMaking Technology <onboarding@resend.dev>",
+  from: `MoldMaking Technology <${MAIL_FROM}>`,
   to: email,
   subject: `Your Digital Magazine - ${magazine.title}`,
   html: `
