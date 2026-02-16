@@ -308,7 +308,7 @@ export async function getRecruiterDashboard(req, res) {
 // ================= UPDATE RECRUITER PROFILE =================
 export async function updateRecruiterProfile(req, res) {
   try {
-    const userId = req.user.id // ✅ FIXED
+    const userId = req.user.id
     const { fullName, headline, companyId } = req.body
 
     const recruiter = await prisma.user.update({
@@ -317,6 +317,7 @@ export async function updateRecruiterProfile(req, res) {
         fullName,
         headline,
         companyId,
+        isOnboarded: true,   // ⭐ THIS WAS MISSING
       },
     })
 
@@ -326,3 +327,4 @@ export async function updateRecruiterProfile(req, res) {
     res.status(500).json({ error: "Failed to update profile" })
   }
 }
+

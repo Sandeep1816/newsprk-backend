@@ -7,7 +7,9 @@ export async function getRecruiterDashboard(req, res) {
       return res.status(403).json({ error: "Not allowed" })
     }
 
-    const recruiterId = req.user.userId
+    // const recruiterId = req.user.userId
+    const recruiterId = req.user.id
+
 
     // Jobs
     const jobs = await prisma.job.findMany({
