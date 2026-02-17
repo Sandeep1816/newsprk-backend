@@ -328,3 +328,58 @@ export async function updateRecruiterProfile(req, res) {
   }
 }
 
+export async function getRecruitersByCompany(req, res) {
+  try {
+    const { companyId } = req.query
+
+    if (!companyId) {
+      return res.status(400).json({ error: "CompanyId required" })
+    }
+
+    const recruiters = await prisma.user.findMany({
+      where: {
+        role: "recruiter",
+        companyId: Number(companyId),
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        companyId: true,
+      },
+    })
+
+    res.json(recruiters)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: "Failed to fetch recruiters" })
+  }
+}
+
+
+export async function getAllRecruiters(req, res) {
+  try {
+    if (req.user.role !== "admin") {
+      return res.status(403).json({ error: "Admin only" })
+    }
+
+    const recruiters = await prisma.user.findMany({
+      where: {
+        role: "recruiter",
+      },
+      include: {
+        company: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    })
+
+    res.json(recruiters)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: "Failed to fetch recruiters" })
+  }
+}

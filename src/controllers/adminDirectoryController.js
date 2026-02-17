@@ -95,3 +95,33 @@ export async function rejectDirectory(req, res) {
 
   res.json({ message: "Directory rejected" })
 }
+
+export async function adminCreateDirectory(req, res) {
+  if (req.user.role?.toLowerCase() !== "admin") {
+    return res.status(403).json({ error: "Admin only" });
+  }
+
+  const {
+    name,
+    slug,
+    description,
+    companyId,
+    submittedById,
+  } = req.body;
+
+  const directory = await prisma.supplierDirectory.create({
+    data: {
+      name,
+      slug,
+      description,
+      companyId: Number(companyId),
+      submittedById: Number(submittedById),
+      status: "APPROVED",
+      isLiveEditable: true,
+      approvedById: req.user.userId ?? req.user.id,
+      approvedAt: new Date(),
+    },
+  });
+
+  res.status(201).json(directory);
+}

@@ -7,7 +7,8 @@ import {
   verifyCompany,
   getCompanyPeople,
   followCompany,
-  unfollowCompany
+  unfollowCompany,
+  adminCreateCompany
 } from "../controllers/companiesController.js";
 
 const router = express.Router();
@@ -25,5 +26,6 @@ router.post("/", requireAuth, createCompany);
 
 // Admin
 router.put("/:id/verify", requireAuth, requireAdmin, verifyCompany);
+router.post("/admin-create", requireAuth, adminCreateCompany);
 
 export default router;

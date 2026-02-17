@@ -107,6 +107,8 @@ import eventRoutes from "./routes/events.js";
 import calendarRoutes from "./routes/calendar.js";
 import publicRoutes from "./routes/public.js";
 import magazineRoutes from "./routes/magazineRoutes.js";
+import adminUsersRoutes from "./routes/adminUsers.js";
+
 
 /* ======================================================
    ✅ FIX: Proper .env loading (IMPORTANT FOR TURNSTILE)
@@ -171,6 +173,8 @@ app.use("/api/events", eventRoutes);
 app.use("/api/calendar", calendarRoutes);
 app.use("/api", publicRoutes);
 app.use("/api/magazines", magazineRoutes);
+app.use("/api/admin", adminUsersRoutes);
+
 
 /* ==========================
    🚀 Start Server

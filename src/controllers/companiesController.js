@@ -214,3 +214,51 @@ export async function unfollowCompany(req, res) {
     res.status(500).json({ error: "Failed to unfollow company" });
   }
 }
+
+
+/**
+ * ADMIN: Create company
+ */
+export async function adminCreateCompany(req, res) {
+  try {
+    if (req.user.role?.toLowerCase() !== "admin") {
+      return res.status(403).json({ error: "Admin only" });
+    }
+
+    const { name, logoUrl, website, description, location } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: "Company name is required" });
+    }
+
+    const baseSlug = slugify(name, {
+      lower: true,
+      strict: true,
+      trim: true,
+    });
+
+    let slug = baseSlug;
+    let count = 1;
+
+    while (await prisma.company.findUnique({ where: { slug } })) {
+      slug = `${baseSlug}-${count++}`;
+    }
+
+    const company = await prisma.company.create({
+      data: {
+        name,
+        slug,
+        logoUrl,
+        website,
+        description,
+        location,
+        isVerified: true, // auto verified
+      },
+    });
+
+    res.status(201).json(company);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Admin company creation failed" });
+  }
+}

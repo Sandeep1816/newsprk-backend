@@ -5,6 +5,8 @@ import {
   updateRecruiterProfile,
   getMyRecruiterProfile,
   getRecruiterDashboard,
+  getRecruitersByCompany,
+  getAllRecruiters
 } from "../controllers/recruitersController.js"
 
 const router = express.Router()
@@ -15,10 +17,17 @@ router.get("/me", requireAuth, getMyRecruiterProfile)
 // 📊 Recruiter dashboard
 router.get("/dashboard", requireAuth, getRecruiterDashboard)
 
-// 🌍 Public recruiter profile
+// ✅ Admin get all recruiters (MOVE THIS UP)
+router.get("/admin", requireAuth, getAllRecruiters)
+
+// Company filter
+router.get("/", requireAuth, getRecruitersByCompany)
+
+// 🌍 Public recruiter profile (MUST BE LAST)
 router.get("/:username", getRecruiterProfile)
 
 // ✏️ Update profile
 router.put("/profile", requireAuth, updateRecruiterProfile)
 
 export default router
+
