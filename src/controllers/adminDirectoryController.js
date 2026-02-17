@@ -105,6 +105,7 @@ export async function adminCreateDirectory(req, res) {
     name,
     slug,
     description,
+    logoUrl,
     companyId,
     submittedById,
   } = req.body;
@@ -114,6 +115,7 @@ export async function adminCreateDirectory(req, res) {
       name,
       slug,
       description,
+      logoUrl,
       companyId: Number(companyId),
       submittedById: Number(submittedById),
       status: "APPROVED",
