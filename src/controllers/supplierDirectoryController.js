@@ -254,20 +254,41 @@ export const getSuppliers = async (_req, res) => {
  * Get supplier showroom
  */
 export const getSupplierBySlug = async (req, res) => {
-  const { slug } = req.params
+  try {
+    const { slug } = req.params
 
-  const supplier = await prisma.supplierDirectory.update({
-    where: { slug },
-    data: {
-      views: { increment: 1 }, // 👁️ +1 view
-    },
-  })
+    const supplier = await prisma.supplierDirectory.findUnique({
+      where: { slug },
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+            location: true,
+            industry: true,
+            website: true,
+          },
+        },
+      },
+    })
 
-  if (!supplier || supplier.status !== "APPROVED") {
-    return res.status(404).json({ error: "Supplier not found" })
+    if (!supplier || supplier.status !== "APPROVED") {
+      return res.status(404).json({ error: "Supplier not found" })
+    }
+
+    // increment views separately
+    await prisma.supplierDirectory.update({
+      where: { id: supplier.id },
+      data: {
+        views: { increment: 1 },
+      },
+    })
+
+    res.json(supplier)
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ error: "Failed to fetch supplier" })
   }
-
-  res.json(supplier)
 }
 
 

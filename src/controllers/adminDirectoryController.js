@@ -200,24 +200,31 @@ export async function adminCreateFullSetup(req, res) {
         directorySlug = `${directorySlug}-${Date.now()}`;
       }
 
-      const newDirectory = await tx.supplierDirectory.create({
-        data: {
-          name: directory.name,
-          slug: directorySlug,
-          description: directory.description,
-          website: directory.website,
-          phoneNumber: directory.phoneNumber,
-          email: directory.email,
-          logoUrl: directory.logoUrl,
-          companyId: newCompany.id,
-          submittedById: newRecruiter.id,
+     const newDirectory = await tx.supplierDirectory.create({
+  data: {
+    name: directory.name,
+    slug: directorySlug,
+    description: directory.description,
+    website: directory.website,
+    phoneNumber: directory.phoneNumber,
+    email: directory.email,
+    logoUrl: directory.logoUrl,
+    location: directory.location,
+    industry: directory.industry,
 
-          status: "APPROVED",
-          isLiveEditable: true,
-          approvedById: req.user.userId ?? req.user.id,
-          approvedAt: new Date(),
-        },
-      });
+    // ✅ ADD THESE
+    videoGallery: directory.videoGallery || [],
+    socialLinks: directory.socialLinks || {},
+
+    companyId: newCompany.id,
+    submittedById: newRecruiter.id,
+
+    status: "APPROVED",
+    isLiveEditable: true,
+    approvedById: req.user.userId ?? req.user.id,
+    approvedAt: new Date(),
+  },
+});
 
       /* =============================
          4️⃣ AUDIT LOG
