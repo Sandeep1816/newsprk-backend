@@ -3,23 +3,33 @@ import slugify from "slugify";
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const MAIL_FROM = process.env.MAIL_FROM
+const MAIL_FROM = process.env.MAIL_FROM;
 
 /* ======================================================
-   CREATE MAGAZINE (ADMIN ONLY)
+   CREATE MAGAZINE (ADMIN)
 ====================================================== */
 export const createMagazine = async (req, res) => {
   try {
-    const { title, description, coverImageUrl, pdfUrl,flipbookPages, status } = req.body;
+    const {
+      title,
+      description,
+      coverImageUrl,
+      pdfUrl,
+      flipbookPages,
+      coverStoryId,
+      authorId,
+      status,
+    } = req.body;
 
     if (!title || !pdfUrl) {
-      return res.status(400).json({ error: "Title and PDF are required" });
+      return res.status(400).json({
+        error: "Title and PDF are required",
+      });
     }
 
     let baseSlug = slugify(title, { lower: true, strict: true });
     let slug = baseSlug;
 
-    // 🔒 Prevent duplicate slug
     const existing = await prisma.magazine.findUnique({
       where: { slug },
     });
@@ -36,14 +46,20 @@ export const createMagazine = async (req, res) => {
         coverImageUrl,
         pdfUrl,
         flipbookPages,
+        coverStoryId: coverStoryId ? Number(coverStoryId) : null,
+        authorId: authorId ? Number(authorId) : null,
         status: status || "DRAFT",
         createdById: req.user.id,
-        publishedAt: status === "PUBLISHED" ? new Date() : null,
+        publishedAt:
+          status === "PUBLISHED" ? new Date() : null,
+      },
+      include: {
+        coverStory: true,
+        author: true,
       },
     });
 
-    res.json(magazine);
-
+    res.status(201).json(magazine);
   } catch (error) {
     console.error("CREATE MAGAZINE ERROR:", error);
     res.status(500).json({ error: "Failed to create magazine" });
@@ -51,30 +67,114 @@ export const createMagazine = async (req, res) => {
 };
 
 /* ======================================================
-   REGISTER FOR MAGAZINE + SEND EMAIL (RESEND)
+   UPDATE MAGAZINE (ADMIN)
+====================================================== */
+export const updateMagazine = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const magazine = await prisma.magazine.update({
+      where: { id: Number(id) },
+      data: req.body,
+      include: {
+        coverStory: true,
+        author: true,
+      },
+    });
+
+    res.json(magazine);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update magazine" });
+  }
+};
+
+/* ======================================================
+   DELETE MAGAZINE (ADMIN)
+====================================================== */
+export const deleteMagazine = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await prisma.magazine.delete({
+      where: { id: Number(id) },
+    });
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete magazine" });
+  }
+};
+
+/* ======================================================
+   GET ALL PUBLISHED MAGAZINES (PUBLIC)
+====================================================== */
+export const getAllMagazines = async (req, res) => {
+  try {
+    const magazines = await prisma.magazine.findMany({
+      where: { status: "PUBLISHED" },
+      include: {
+        coverStory: true,
+        author: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json(magazines);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch magazines" });
+  }
+};
+
+/* ======================================================
+   GET SINGLE MAGAZINE (PUBLIC)
+====================================================== */
+export const getSingleMagazine = async (req, res) => {
+  try {
+    const { slug } = req.params;
+
+    const magazine = await prisma.magazine.findUnique({
+      where: { slug },
+      include: {
+        coverStory: true,
+        author: true,
+      },
+    });
+
+    if (!magazine || magazine.status !== "PUBLISHED") {
+      return res.status(404).json({ error: "Magazine not found" });
+    }
+
+    res.json(magazine);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch magazine" });
+  }
+};
+
+/* ======================================================
+   REGISTER FOR MAGAZINE + EMAIL (PUBLIC)
 ====================================================== */
 export const registerMagazine = async (req, res) => {
   try {
     const { magazineId } = req.params;
-    const { firstName, lastName, email, companyName, jobTitle, country } = req.body;
+    const { firstName, lastName, email, companyName, jobTitle, country } =
+      req.body;
 
     if (!firstName || !lastName || !email) {
-      return res.status(400).json({ error: "First name, last name and email are required" });
+      return res.status(400).json({
+        error: "First name, last name and email are required",
+      });
     }
 
     const magazine = await prisma.magazine.findUnique({
       where: { id: Number(magazineId) },
     });
 
-    if (!magazine) {
-      return res.status(404).json({ error: "Magazine not found" });
+    if (!magazine || magazine.status !== "PUBLISHED") {
+      return res.status(404).json({
+        error: "Magazine not available",
+      });
     }
 
-    if (magazine.status !== "PUBLISHED") {
-      return res.status(400).json({ error: "Magazine not available" });
-    }
-
-    // 🔒 Prevent duplicate registration
     const existing = await prisma.magazineRegistration.findFirst({
       where: {
         magazineId: Number(magazineId),
@@ -83,10 +183,11 @@ export const registerMagazine = async (req, res) => {
     });
 
     if (existing) {
-      return res.status(400).json({ error: "You already registered for this magazine" });
+      return res.status(400).json({
+        error: "You already registered for this magazine",
+      });
     }
 
-    // ✅ Save registration
     await prisma.magazineRegistration.create({
       data: {
         magazineId: magazine.id,
@@ -99,98 +200,218 @@ export const registerMagazine = async (req, res) => {
       },
     });
 
-    /* ======================================================
-       SEND EMAIL USING RESEND
-    ====================================================== */
-
-  await resend.emails.send({
-  from: `MoldMaking Technology <${MAIL_FROM}>`,
-  to: email,
-  subject: `Your Digital Magazine - ${magazine.title}`,
-  html: `
-    <h2>Hello ${firstName},</h2>
-    <p>Attached is your digital magazine.</p>
-    <p>Thank you for registering.</p>
-  `,
-  attachments: [
-    {
-      filename: `${magazine.title}.pdf`,
-      path: magazine.pdfUrl, // Cloudinary public URL
-    },
-  ],
-});
-
+    await resend.emails.send({
+      from: `MoldMaking Technology <${MAIL_FROM}>`,
+      to: email,
+      subject: `Your Digital Magazine - ${magazine.title}`,
+      html: `
+        <h2>Hello ${firstName},</h2>
+        <p>Attached is your digital magazine.</p>
+        <p>Thank you for registering.</p>
+      `,
+      attachments: [
+        {
+          filename: `${magazine.title}.pdf`,
+          path: magazine.pdfUrl,
+        },
+      ],
+    });
 
     res.json({ success: true });
-
   } catch (error) {
-    console.error("MAGAZINE REGISTRATION ERROR:", error);
+    console.error("REGISTER ERROR:", error);
     res.status(500).json({ error: "Registration failed" });
+  }
+};
+
+/* ======================================================
+   GET MAGAZINE REGISTRATIONS (ADMIN)
+====================================================== */
+export const getMagazineRegistrations = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const registrations = await prisma.magazineRegistration.findMany({
+      where: { magazineId: Number(id) },
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json(registrations);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch registrations" });
+  }
+};
+
+/* ======================================================
+   GET CREATION DROPDOWN DATA (ADMIN)
+====================================================== */
+export const getMagazineCreationData = async (req, res) => {
+  try {
+    const [authors, coverStories] = await Promise.all([
+      prisma.magazineAuthor.findMany(),
+      prisma.coverStory.findMany({
+        include: { author: true },
+      }),
+    ]);
+
+    res.json({ authors, coverStories });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to load creation data" });
   }
 };
 
 
 /* ======================================================
-   GET ALL PUBLISHED MAGAZINES (PUBLIC)
+   CREATE MAGAZINE AUTHOR (ADMIN)
 ====================================================== */
-export const getAllMagazines = async (req, res) => {
+export const createMagazineAuthor = async (req, res) => {
   try {
-    const magazines = await prisma.magazine.findMany({
-      where: { status: "PUBLISHED" },
+    const { name, profileImageUrl, designation, linkedinUrl } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ error: "Author name required" });
+    }
+
+    const author = await prisma.magazineAuthor.create({
+      data: {
+        name,
+        profileImageUrl,
+        designation,
+        linkedinUrl,
+      },
+    });
+
+    res.status(201).json(author);
+  } catch (error) {
+    console.error("CREATE AUTHOR ERROR:", error);
+    res.status(500).json({ error: "Failed to create author" });
+  }
+};
+
+/* ======================================================
+   GET ALL AUTHORS
+====================================================== */
+export const getAllMagazineAuthors = async (req, res) => {
+  try {
+    const authors = await prisma.magazineAuthor.findMany({
       orderBy: { createdAt: "desc" },
     });
 
-    res.json(magazines);
+    res.json(authors);
   } catch (error) {
-    console.error("GET MAGAZINES ERROR:", error);
-    res.status(500).json({ error: "Failed to fetch magazines" });
+    res.status(500).json({ error: "Failed to fetch authors" });
   }
 };
 
+/* ======================================================
+   CREATE COVER STORY (ADMIN)
+====================================================== */
+export const createCoverStory = async (req, res) => {
+  try {
+    const {
+      title,
+      shortDescription,
+      keyCategories,
+      imageBrief,
+      fullDescription,
+      badge,
+      coverImageUrl,
+      slugImageUrls,
+      authorId,
+    } = req.body;
 
+    if (!title || !fullDescription) {
+      return res.status(400).json({
+        error: "Title and Full Description required",
+      });
+    }
 
-export const getSingleMagazine = async (req, res) => {
-  const { slug } = req.params;
+    let baseSlug = slugify(title, { lower: true, strict: true });
+    let slug = baseSlug;
 
-  const magazine = await prisma.magazine.findUnique({
-    where: { slug },
-  });
+    const existing = await prisma.coverStory.findUnique({
+      where: { slug },
+    });
 
-  if (!magazine || magazine.status !== "PUBLISHED") {
-    return res.status(404).json({ error: "Magazine not found" });
+    if (existing) {
+      slug = `${baseSlug}-${Date.now()}`;
+    }
+
+    const coverStory = await prisma.coverStory.create({
+      data: {
+        title,
+        slug,
+        shortDescription,
+        keyCategories,
+        imageBrief,
+        fullDescription,
+        badge,
+        coverImageUrl,
+        slugImageUrls,
+        authorId: authorId ? Number(authorId) : null,
+      },
+      include: {
+        author: true,
+      },
+    });
+
+    res.status(201).json(coverStory);
+  } catch (error) {
+    console.error("CREATE COVER STORY ERROR:", error);
+    res.status(500).json({ error: "Failed to create cover story" });
   }
-
-  res.json(magazine);
 };
 
-export const updateMagazine = async (req, res) => {
-  const { id } = req.params;
+/* ======================================================
+   GET ALL COVER STORIES
+====================================================== */
+export const getAllCoverStories = async (req, res) => {
+  try {
+    const stories = await prisma.coverStory.findMany({
+      include: {
+        author: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
 
-  const magazine = await prisma.magazine.update({
-    where: { id: Number(id) },
-    data: req.body,
-  });
-
-  res.json(magazine);
+    res.json(stories);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch cover stories" });
+  }
 };
 
-export const deleteMagazine = async (req, res) => {
-  const { id } = req.params;
+/* ======================================================
+   GET SINGLE COVER STORY (PUBLIC)
+====================================================== */
+export const getSingleCoverStory = async (req, res) => {
+  try {
+    const { slug } = req.params;
 
-  await prisma.magazine.delete({
-    where: { id: Number(id) },
-  });
+    const story = await prisma.coverStory.findUnique({
+      where: { slug },
+      include: {
+        author: true,
+      },
+    });
 
-  res.json({ success: true });
+    if (!story) {
+      return res.status(404).json({ error: "Cover story not found" });
+    }
+
+    res.json(story);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch cover story" });
+  }
 };
 
-export const getMagazineRegistrations = async (req, res) => {
-  const { id } = req.params;
-
-  const registrations = await prisma.magazineRegistration.findMany({
-    where: { magazineId: Number(id) },
+export const getAllMagazinesAdmin = async (req, res) => {
+  const magazines = await prisma.magazine.findMany({
     orderBy: { createdAt: "desc" },
-  });
+    include: {
+      author: true,
+      coverStory: true,
+    },
+  })
 
-  res.json(registrations);
-};
+  res.json(magazines)
+}

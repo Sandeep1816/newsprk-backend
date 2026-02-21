@@ -1,4 +1,6 @@
 import prisma from "../prismaClient.js"
+import bcrypt from "bcrypt";
+import slugify from "slugify";
 
 export async function getPendingDirectories(req, res) {
   if (req.user.role?.toLowerCase() !== "admin") {
@@ -126,4 +128,121 @@ export async function adminCreateDirectory(req, res) {
   });
 
   res.status(201).json(directory);
+}
+
+
+export async function adminCreateFullSetup(req, res) {
+  if (req.user.role?.toLowerCase() !== "admin") {
+    return res.status(403).json({ error: "Admin only" });
+  }
+
+  const { company, recruiter, directory } = req.body;
+
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+
+      /* =============================
+         1️⃣ CREATE COMPANY
+      ============================== */
+
+      let companySlug = slugify(company.name, { lower: true, strict: true });
+
+      const existingCompany = await tx.company.findUnique({
+        where: { slug: companySlug },
+      });
+
+      if (existingCompany) {
+        companySlug = `${companySlug}-${Date.now()}`;
+      }
+
+      const newCompany = await tx.company.create({
+        data: {
+          name: company.name,
+          slug: companySlug,
+          description: company.description,
+          website: company.website,
+          location: company.location,
+          industry: company.industry,
+          logoUrl: company.logoUrl,
+          isVerified: true,
+        },
+      });
+
+      /* =============================
+         2️⃣ CREATE RECRUITER
+      ============================== */
+
+      const hashedPassword = await bcrypt.hash(recruiter.password, 10);
+
+      const newRecruiter = await tx.user.create({
+        data: {
+          email: recruiter.email,
+          username: recruiter.username,
+          password: hashedPassword,
+          role: "recruiter",
+          fullName: recruiter.fullName,
+          companyId: newCompany.id,
+          emailVerified: true,
+        },
+      });
+
+      /* =============================
+         3️⃣ CREATE DIRECTORY
+      ============================== */
+
+      let directorySlug = slugify(directory.name, { lower: true, strict: true });
+
+      const existingDirectory = await tx.supplierDirectory.findUnique({
+        where: { slug: directorySlug },
+      });
+
+      if (existingDirectory) {
+        directorySlug = `${directorySlug}-${Date.now()}`;
+      }
+
+      const newDirectory = await tx.supplierDirectory.create({
+        data: {
+          name: directory.name,
+          slug: directorySlug,
+          description: directory.description,
+          website: directory.website,
+          phoneNumber: directory.phoneNumber,
+          email: directory.email,
+          logoUrl: directory.logoUrl,
+          companyId: newCompany.id,
+          submittedById: newRecruiter.id,
+
+          status: "APPROVED",
+          isLiveEditable: true,
+          approvedById: req.user.userId ?? req.user.id,
+          approvedAt: new Date(),
+        },
+      });
+
+      /* =============================
+         4️⃣ AUDIT LOG
+      ============================== */
+
+      await tx.auditLog.create({
+        data: {
+          action: "FULL_DIRECTORY_CREATED",
+          entity: "SupplierDirectory",
+          entityId: newDirectory.id,
+          userId: req.user.userId ?? req.user.id,
+        },
+      });
+
+      return {
+        company: newCompany,
+        recruiter: newRecruiter,
+        directory: newDirectory,
+      };
+    });
+
+    res.status(201).json(result);
+
+  } catch (error) {
+    console.error("FULL SETUP ERROR:", error);
+    res.status(500).json({ error: "Failed to create full setup" });
+  }
 }

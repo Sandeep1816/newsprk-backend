@@ -38,8 +38,6 @@ model Post {
   email          String?
   whatsappNumber String?
 
-
-
   authorId   Int?
   companyId  Int?
   categoryId Int
@@ -152,13 +150,13 @@ model JobApplication {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  role      String   @default("candidate")
+  id       Int    @id @default(autoincrement())
+  email    String @unique
+  password String
+  role     String @default("candidate")
 
-   // Email Verification
-  emailVerified Boolean  @default(false)
+  // Email Verification
+  emailVerified Boolean   @default(false)
   otpHash       String?
   otpExpiry     DateTime?
 
@@ -167,7 +165,7 @@ model User {
   resetOtpExpiry DateTime?
 
   // Security
-  failedLoginAttempts Int @default(0)
+  failedLoginAttempts Int       @default(0)
   lockUntil           DateTime?
 
   createdAt DateTime @default(now())
@@ -185,15 +183,14 @@ model User {
   companyId Int?
   company   Company? @relation(fields: [companyId], references: [id])
 
-   createdEvents  Event[] @relation("CreatedEvents")
-   approvedEvents Event[] @relation("ApprovedEvents")
+  createdEvents  Event[] @relation("CreatedEvents")
+  approvedEvents Event[] @relation("ApprovedEvents")
 
   jobsPosted        Job[]
   jobApplications   JobApplication[]
   followedCompanies CompanyFollower[]
 
   magazines Magazine[]
-
 
   // ✅ FIXED RELATIONS
   submittedDirectories SupplierDirectory[] @relation("SubmittedDirectories")
@@ -239,7 +236,6 @@ model SupplierDirectory {
   // ✅ SOCIAL MEDIA LINKS
   socialLinks   Json?
 
-
   // ✅ PRODUCTS / SUPPLIES
   productSupplies Json?
   // ["Injection Molds", "Hot Runner Systems", "Tooling Design"]
@@ -247,8 +243,8 @@ model SupplierDirectory {
   status         DirectoryStatus @default(PENDING)
   isLiveEditable Boolean         @default(false)
 
-  views          Int             @default(0)
-  connections    Int             @default(0)
+  views       Int @default(0)
+  connections Int @default(0)
 
   submittedById Int
   approvedById  Int?
@@ -266,7 +262,6 @@ enum PostStatus {
   APPROVED
   REJECTED
 }
-
 
 enum BannerStatus {
   ACTIVE
@@ -289,26 +284,26 @@ enum BannerPlacement {
 }
 
 model AdvertisementBanner {
-  id          Int          @id @default(autoincrement())
-  title       String
-  imageUrl    String
-  targetUrl   String?
-  placement   BannerPlacement
-  status      BannerStatus @default(INACTIVE)
+  id        Int             @id @default(autoincrement())
+  title     String
+  imageUrl  String
+  targetUrl String?
+  placement BannerPlacement
+  status    BannerStatus    @default(INACTIVE)
 
-  position    Int          @default(0)
+  position Int @default(0)
 
-  startDate   DateTime?
-  endDate     DateTime?
+  startDate DateTime?
+  endDate   DateTime?
 
-  impressions Int          @default(0)
-  clicks      Int          @default(0)
+  impressions Int @default(0)
+  clicks      Int @default(0)
 
   createdById Int
   createdBy   User @relation("CreatedBanners", fields: [createdById], references: [id])
 
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 enum EventStatus {
@@ -318,17 +313,17 @@ enum EventStatus {
 }
 
 model Event {
-  id          Int      @id @default(autoincrement())
-  title       String
-  slug        String   @unique
+  id    Int    @id @default(autoincrement())
+  title String
+  slug  String @unique
 
-  logoUrl     String?
-  bannerUrl   String?
+  logoUrl   String?
+  bannerUrl String?
 
-  startDate   DateTime
-  endDate     DateTime
+  startDate DateTime
+  endDate   DateTime
 
-  description String   @db.LongText
+  description String @db.LongText
 
   websiteUrl  String?
   registerUrl String?
@@ -337,53 +332,52 @@ model Event {
   // Calendar helpers
   calendarUrl String?
 
-  status      EventStatus @default(DRAFT)
-  views       Int      @default(0)
+  status EventStatus @default(DRAFT)
+  views  Int         @default(0)
 
-  createdById Int
+  createdById  Int
   approvedById Int?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   publishedAt DateTime?
 
-  createdBy   User  @relation("CreatedEvents", fields: [createdById], references: [id])
-  approvedBy  User? @relation("ApprovedEvents", fields: [approvedById], references: [id])
+  createdBy  User  @relation("CreatedEvents", fields: [createdById], references: [id])
+  approvedBy User? @relation("ApprovedEvents", fields: [approvedById], references: [id])
 
   registrations EventRegistration[]
 }
 
 model EventRegistration {
-  id        Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  eventId   Int
-  event     Event    @relation(fields: [eventId], references: [id])
+  eventId Int
+  event   Event @relation(fields: [eventId], references: [id])
 
-  fullName  String
-  email     String
-  phone     String
+  fullName String
+  email    String
+  phone    String
 
   companyName String?
   jobTitle    String?
   country     String?
   city        String?
 
-  industry    String?
-  experience  String?
+  industry     String?
+  experience   String?
   attendeeType String?
 
-  ticketType  String?
-  interests   Json?
+  ticketType String?
+  interests  Json?
 
   specialRequirements String? @db.LongText
 
-  status      String   @default("REGISTERED")
+  status String @default("REGISTERED")
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([eventId])
 }
-
 
 enum MagazineStatus {
   DRAFT
@@ -391,33 +385,73 @@ enum MagazineStatus {
   ARCHIVED
 }
 
+model MagazineAuthor {
+  id              Int     @id @default(autoincrement())
+  name            String
+  profileImageUrl String?
+  designation     String?
+  linkedinUrl     String?
+
+  createdAt DateTime @default(now())
+
+  coverStories CoverStory[]
+  magazines    Magazine[]
+}
+
+model CoverStory {
+  id               Int     @id @default(autoincrement())
+  title            String
+  slug             String  @unique
+  shortDescription String?
+  keyCategories    Json?
+  imageBrief       String?
+  fullDescription  String  @db.LongText
+  badge            String?
+  coverImageUrl    String?
+  slugImageUrls    Json?
+
+  createdAt DateTime @default(now())
+
+  authorId Int?
+  author   MagazineAuthor? @relation(fields: [authorId], references: [id])
+
+  magazines Magazine[]
+}
+
 model Magazine {
-  id          Int      @id @default(autoincrement())
+  id          Int     @id @default(autoincrement())
   title       String
-  slug        String   @unique
-  description String?  @db.LongText
+  slug        String  @unique
+  description String? @db.LongText
 
   coverImageUrl String?
-  pdfUrl        String   // Cloudinary PDF URL
-  flipbookPages Json? 
+  pdfUrl        String
+  flipbookPages Json?
 
-  status       MagazineStatus @default(DRAFT)
+  coverStoryId Int?
+  coverStory   CoverStory? @relation(fields: [coverStoryId], references: [id])
+
+  authorId Int?
+  author   MagazineAuthor? @relation(fields: [authorId], references: [id])
+
+  status MagazineStatus @default(DRAFT)
 
   createdById Int
   createdBy   User @relation(fields: [createdById], references: [id])
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   publishedAt DateTime?
 
+  // ✅ ADD THIS LINE (VERY IMPORTANT)
   registrations MagazineRegistration[]
 }
 
 model MagazineRegistration {
-  id          Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  magazineId  Int
-  magazine    Magazine @relation(fields: [magazineId], references: [id])
+  magazineId Int
+  magazine   Magazine @relation(fields: [magazineId], references: [id])
 
   firstName   String
   lastName    String
@@ -426,7 +460,7 @@ model MagazineRegistration {
   jobTitle    String?
   country     String?
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@index([magazineId])
 }
