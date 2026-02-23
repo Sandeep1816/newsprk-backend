@@ -130,6 +130,32 @@ export async function adminCreateDirectory(req, res) {
   res.status(201).json(directory);
 }
 
+/* =========================================
+   ✅ HELPER: Generate a unique username
+========================================= */
+async function generateUniqueUsername(email) {
+  const base = email
+    .split("@")[0]
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+
+  // Try base first
+  const existing = await prisma.user.findUnique({ where: { username: base } })
+  if (!existing) return base
+
+  // Keep trying with random 4-digit suffix until unique
+  let username = ""
+  let isUnique = false
+
+  while (!isUnique) {
+    const suffix = Math.floor(1000 + Math.random() * 9000)
+    username = `${base}${suffix}`
+    const taken = await prisma.user.findUnique({ where: { username } })
+    if (!taken) isUnique = true
+  }
+
+  return username
+}
 
 export async function adminCreateFullSetup(req, res) {
   if (req.user.role?.toLowerCase() !== "admin") {
@@ -139,13 +165,29 @@ export async function adminCreateFullSetup(req, res) {
   const { company, recruiter, directory } = req.body;
 
   try {
+    // ✅ Generate unique username BEFORE the transaction
+    const uniqueUsername = await generateUniqueUsername(recruiter.email)
+
     const result = await prisma.$transaction(async (tx) => {
 
-      /* =============================
-         1️⃣ CREATE COMPANY
-      ============================== */
+      /* ==============================
+         1️⃣ VALIDATE INDUSTRY
+      =============================== */
+      const industry = await tx.industry.findUnique({
+        where: { id: Number(company.industryId) },
+      });
 
-      let companySlug = slugify(company.name, { lower: true, strict: true });
+      if (!industry) {
+        throw new Error("Invalid industry selected");
+      }
+
+      /* ==============================
+         2️⃣ CREATE COMPANY
+      =============================== */
+      let companySlug = slugify(company.name, {
+        lower: true,
+        strict: true,
+      });
 
       const existingCompany = await tx.company.findUnique({
         where: { slug: companySlug },
@@ -162,22 +204,22 @@ export async function adminCreateFullSetup(req, res) {
           description: company.description,
           website: company.website,
           location: company.location,
-          industry: company.industry,
+          address: company.address,
+          industryId: Number(company.industryId),
           logoUrl: company.logoUrl,
           isVerified: true,
         },
       });
 
-      /* =============================
-         2️⃣ CREATE RECRUITER
-      ============================== */
-
+      /* ==============================
+         3️⃣ CREATE RECRUITER
+      =============================== */
       const hashedPassword = await bcrypt.hash(recruiter.password, 10);
 
       const newRecruiter = await tx.user.create({
         data: {
           email: recruiter.email,
-          username: recruiter.username,
+          username: uniqueUsername,   // ✅ guaranteed unique
           password: hashedPassword,
           role: "recruiter",
           fullName: recruiter.fullName,
@@ -186,11 +228,13 @@ export async function adminCreateFullSetup(req, res) {
         },
       });
 
-      /* =============================
-         3️⃣ CREATE DIRECTORY
-      ============================== */
-
-      let directorySlug = slugify(directory.name, { lower: true, strict: true });
+      /* ==============================
+         4️⃣ CREATE DIRECTORY
+      =============================== */
+      let directorySlug = slugify(directory.name, {
+        lower: true,
+        strict: true,
+      });
 
       const existingDirectory = await tx.supplierDirectory.findUnique({
         where: { slug: directorySlug },
@@ -200,36 +244,32 @@ export async function adminCreateFullSetup(req, res) {
         directorySlug = `${directorySlug}-${Date.now()}`;
       }
 
-     const newDirectory = await tx.supplierDirectory.create({
-  data: {
-    name: directory.name,
-    slug: directorySlug,
-    description: directory.description,
-    website: directory.website,
-    phoneNumber: directory.phoneNumber,
-    email: directory.email,
-    logoUrl: directory.logoUrl,
-    location: directory.location,
-    industry: directory.industry,
+      const newDirectory = await tx.supplierDirectory.create({
+        data: {
+          name: directory.name,
+          slug: directorySlug,
+          description: directory.description,
+          website: directory.website,
+          phoneNumber: directory.phoneNumber,
+          email: directory.email,
+          logoUrl: directory.logoUrl,
 
-    // ✅ ADD THESE
-    videoGallery: directory.videoGallery || [],
-    socialLinks: directory.socialLinks || {},
+          videoGallery: directory.videoGallery || [],
+          socialLinks: directory.socialLinks || {},
 
-    companyId: newCompany.id,
-    submittedById: newRecruiter.id,
+          companyId: newCompany.id,
+          submittedById: newRecruiter.id,
 
-    status: "APPROVED",
-    isLiveEditable: true,
-    approvedById: req.user.userId ?? req.user.id,
-    approvedAt: new Date(),
-  },
-});
+          status: "APPROVED",
+          isLiveEditable: true,
+          approvedById: req.user.userId ?? req.user.id,
+          approvedAt: new Date(),
+        },
+      });
 
-      /* =============================
-         4️⃣ AUDIT LOG
-      ============================== */
-
+      /* ==============================
+         5️⃣ AUDIT LOG
+      =============================== */
       await tx.auditLog.create({
         data: {
           action: "FULL_DIRECTORY_CREATED",
@@ -250,6 +290,6 @@ export async function adminCreateFullSetup(req, res) {
 
   } catch (error) {
     console.error("FULL SETUP ERROR:", error);
-    res.status(500).json({ error: "Failed to create full setup" });
+    res.status(400).json({ error: error.message || "Failed to create full setup" });
   }
 }

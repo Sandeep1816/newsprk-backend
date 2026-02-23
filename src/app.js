@@ -108,6 +108,7 @@ import calendarRoutes from "./routes/calendar.js";
 import publicRoutes from "./routes/public.js";
 import magazineRoutes from "./routes/magazineRoutes.js";
 import adminUsersRoutes from "./routes/adminUsers.js";
+import adminIndustriesRoutes from "./routes/adminIndustryRoutes.js";
 
 
 /* ======================================================
@@ -174,6 +175,7 @@ app.use("/api/calendar", calendarRoutes);
 app.use("/api", publicRoutes);
 app.use("/api/magazines", magazineRoutes);
 app.use("/api/admin", adminUsersRoutes);
+app.use("/api/admin", adminIndustriesRoutes);
 
 
 /* ==========================

@@ -3,9 +3,6 @@ import prisma from "../prismaClient.js"
 /**
  * Recruiter submits directory (FIRST TIME)
  */
-/**
- * Recruiter submits directory (FIRST TIME)
- */
 export const createDirectory = async (req, res) => {
   try {
     const user = req.user
@@ -15,40 +12,17 @@ export const createDirectory = async (req, res) => {
     }
 
     const {
-      name,
-      slug,
-      description,
-      website,
-      logoUrl,
-      coverImageUrl,
-      phoneNumber,
-      email,
-      tradeNames,
-      videoGallery,
-      socialLinks,
-      productSupplies,
+      name, slug, description, website, logoUrl, coverImageUrl,
+      phoneNumber, email, tradeNames, videoGallery, socialLinks, productSupplies,
     } = req.body
 
     const directory = await prisma.supplierDirectory.create({
       data: {
-        name,
-        slug,
-        description,
-        website,
-        logoUrl,
-        coverImageUrl,
-        phoneNumber,
-        email,
-        tradeNames,
-        videoGallery,
-        socialLinks,
-        productSupplies,
-
+        name, slug, description, website, logoUrl, coverImageUrl,
+        phoneNumber, email, tradeNames, videoGallery, socialLinks, productSupplies,
         companyId: user.companyId,
         status: "PENDING",
         isLiveEditable: false,
-
-        // ✅ FIX
         submittedById: user.id,
       },
     })
@@ -66,13 +40,9 @@ export const createDirectory = async (req, res) => {
 export const approveDirectory = async (req, res) => {
   try {
     const user = req.user
-
-    if (user.role !== "admin") {
-      return res.status(403).json({ error: "Admin only" })
-    }
+    if (user.role !== "admin") return res.status(403).json({ error: "Admin only" })
 
     const directoryId = Number(req.params.id)
-
     const directory = await prisma.supplierDirectory.update({
       where: { id: directoryId },
       data: {
@@ -84,12 +54,7 @@ export const approveDirectory = async (req, res) => {
     })
 
     await prisma.auditLog.create({
-      data: {
-        action: "DIRECTORY_APPROVED",
-        entity: "SupplierDirectory",
-        entityId: directory.id,
-        userId: user.id,
-      },
+      data: { action: "DIRECTORY_APPROVED", entity: "SupplierDirectory", entityId: directory.id, userId: user.id },
     })
 
     res.json(directory)
@@ -107,20 +72,13 @@ export const getMyDirectoryById = async (req, res) => {
     const user = req.user
     const directoryId = Number(req.params.id)
 
-    if (user.role !== "recruiter") {
-      return res.status(403).json({ error: "Not allowed" })
-    }
+    if (user.role !== "recruiter") return res.status(403).json({ error: "Not allowed" })
 
     const directory = await prisma.supplierDirectory.findFirst({
-      where: {
-        id: directoryId,
-        submittedById: user.id, // ✅ FIX
-      },
+      where: { id: directoryId, submittedById: user.id },
     })
 
-    if (!directory) {
-      return res.status(404).json({ error: "Directory not found" })
-    }
+    if (!directory) return res.status(404).json({ error: "Directory not found" })
 
     res.json(directory)
   } catch (err) {
@@ -135,24 +93,12 @@ export const getMyDirectoryById = async (req, res) => {
 export const getMyDirectories = async (req, res) => {
   try {
     const user = req.user
-
-    if (user.role !== "recruiter") {
-      return res.status(403).json({ error: "Not allowed" })
-    }
+    if (user.role !== "recruiter") return res.status(403).json({ error: "Not allowed" })
 
     const directories = await prisma.supplierDirectory.findMany({
-      where: {
-        submittedById: user.id, // ✅ FIX
-      },
+      where: { submittedById: user.id },
       orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        status: true,
-        isLiveEditable: true,
-        createdAt: true,
-      },
+      select: { id: true, name: true, slug: true, status: true, isLiveEditable: true, createdAt: true },
     })
 
     res.json(directories)
@@ -170,65 +116,25 @@ export const updateDirectory = async (req, res) => {
     const user = req.user
     const directoryId = Number(req.params.id)
 
-    const directory = await prisma.supplierDirectory.findUnique({
-      where: { id: directoryId },
-    })
+    const directory = await prisma.supplierDirectory.findUnique({ where: { id: directoryId } })
 
-    if (!directory) {
-      return res.status(404).json({ error: "Directory not found" })
-    }
+    if (!directory) return res.status(404).json({ error: "Directory not found" })
+    if (directory.submittedById !== user.id) return res.status(403).json({ error: "Not allowed" })
+    if (!directory.isLiveEditable) return res.status(400).json({ error: "Directory not approved yet" })
 
-    if (directory.submittedById !== user.id) { // ✅ FIX
-      return res.status(403).json({ error: "Not allowed" })
-    }
+    const { name, description, website, logoUrl, coverImageUrl, phoneNumber, email,
+      tradeNames, videoGallery, socialLinks, productSupplies, slug } = req.body
 
-    if (!directory.isLiveEditable) {
-      return res.status(400).json({ error: "Directory not approved yet" })
-    }
-
-    const {
-      name,
-      description,
-      website,
-      logoUrl,
-      coverImageUrl,
-      phoneNumber,
-      email,
-      tradeNames,
-      videoGallery,
-      socialLinks,
-      productSupplies,
-      slug,
-    } = req.body
-
-    if (slug && slug !== directory.slug) {
-      return res.status(400).json({ error: "Slug cannot be changed" })
-    }
+    if (slug && slug !== directory.slug) return res.status(400).json({ error: "Slug cannot be changed" })
 
     const updated = await prisma.supplierDirectory.update({
       where: { id: directoryId },
-      data: {
-        name,
-        description,
-        website,
-        logoUrl,
-        coverImageUrl,
-        phoneNumber,
-        email,
-        tradeNames,
-        videoGallery,
-        socialLinks,
-        productSupplies,
-      },
+      data: { name, description, website, logoUrl, coverImageUrl, phoneNumber, email,
+        tradeNames, videoGallery, socialLinks, productSupplies },
     })
 
     await prisma.auditLog.create({
-      data: {
-        action: "DIRECTORY_UPDATED_LIVE",
-        entity: "SupplierDirectory",
-        entityId: updated.id,
-        userId: user.id, // ✅ FIX
-      },
+      data: { action: "DIRECTORY_UPDATED_LIVE", entity: "SupplierDirectory", entityId: updated.id, userId: user.id },
     })
 
     res.json(updated)
@@ -238,20 +144,141 @@ export const updateDirectory = async (req, res) => {
   }
 }
 
-/**
- * Get all approved suppliers
- */
-export const getSuppliers = async (_req, res) => {
-  const suppliers = await prisma.supplierDirectory.findMany({
-    where: { status: "APPROVED" },
-    orderBy: { name: "asc" },
+/* =========================================
+   ✅ HELPER: Recursively get all descendant
+   industry IDs for a given parent ID.
+   e.g. "Additive Manufacturing" → [its id,
+   all children ids, all grandchildren ids...]
+========================================= */
+async function getAllDescendantIndustryIds(parentId) {
+  const ids = [parentId]
+
+  const children = await prisma.industry.findMany({
+    where: { parentId },
+    select: { id: true },
   })
 
-  res.json(suppliers)
+  for (const child of children) {
+    const childIds = await getAllDescendantIndustryIds(child.id)
+    ids.push(...childIds)
+  }
+
+  return ids
+}
+
+/* =========================================
+   ✅ FIXED: Get approved suppliers with
+   full filter support including industry tree
+   GET /api/suppliers?name=&location=&category=
+     &industryId=&featured=&page=&limit=&sort=
+========================================= */
+export const getSuppliers = async (req, res) => {
+  try {
+    const {
+      name,
+      location,
+      category,
+      industryId,
+      featured,
+      page  = "1",
+      limit = "15",
+      sort  = "alphabetical",
+    } = req.query
+
+    const pageNum  = Math.max(1, parseInt(page))
+    const limitNum = Math.max(1, parseInt(limit))
+    const skip     = (pageNum - 1) * limitNum
+
+    // ✅ Resolve all descendant industry IDs so selecting a parent
+    // also returns suppliers tagged under any of its children/grandchildren
+    let industryIds = null
+    if (industryId) {
+      industryIds = await getAllDescendantIndustryIds(Number(industryId))
+    }
+
+    // ✅ Build dynamic where clause
+    const where = {
+      status: "APPROVED",
+
+      // Filter by supplier name
+      ...(name && {
+        name: { contains: name },
+      }),
+
+      // Filter by company location
+      ...(location && {
+        company: {
+          location: { contains: location },
+        },
+      }),
+
+      // Filter by product category (name or description)
+      ...(category && {
+        OR: [
+          { name:        { contains: category } },
+          { description: { contains: category } },
+        ],
+      }),
+
+      // ✅ Industry filter — matches company's industryId
+      // Uses the full descendant tree so parent selection works
+      ...(industryIds && {
+        company: {
+          industryId: { in: industryIds },
+        },
+      }),
+
+      // Featured filter (add isFeatured field to schema if needed)
+      ...(featured === "true" && {
+        isFeatured: true,
+      }),
+    }
+
+    // Sort options
+    const orderBy =
+      sort === "newest"  ? { createdAt: "desc" } :
+      sort === "popular" ? { views: "desc" }      :
+                           { name: "asc" }         // alphabetical default
+
+    // Run count + data in parallel for performance
+    const [total, suppliers] = await Promise.all([
+      prisma.supplierDirectory.count({ where }),
+      prisma.supplierDirectory.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limitNum,
+        include: {
+          company: {
+            select: {
+              id: true,
+              name: true,
+              location: true,
+              industryId: true,
+              industry: {
+                select: { id: true, name: true },
+              },
+            },
+          },
+        },
+      }),
+    ])
+
+    res.json({
+      data: suppliers,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
+    })
+  } catch (err) {
+    console.error("getSuppliers error:", err)
+    res.status(500).json({ error: "Failed to fetch suppliers" })
+  }
 }
 
 /**
- * Get supplier showroom
+ * Get supplier showroom by slug
  */
 export const getSupplierBySlug = async (req, res) => {
   try {
@@ -261,13 +288,7 @@ export const getSupplierBySlug = async (req, res) => {
       where: { slug },
       include: {
         company: {
-          select: {
-            id: true,
-            name: true,
-            location: true,
-            industry: true,
-            website: true,
-          },
+          select: { id: true, name: true, location: true, industry: true, website: true },
         },
       },
     })
@@ -276,12 +297,9 @@ export const getSupplierBySlug = async (req, res) => {
       return res.status(404).json({ error: "Supplier not found" })
     }
 
-    // increment views separately
     await prisma.supplierDirectory.update({
       where: { id: supplier.id },
-      data: {
-        views: { increment: 1 },
-      },
+      data: { views: { increment: 1 } },
     })
 
     res.json(supplier)
@@ -291,7 +309,6 @@ export const getSupplierBySlug = async (req, res) => {
   }
 }
 
-
 /**
  * ADMIN: Get all directories (for review & management)
  */
@@ -300,26 +317,9 @@ export const getAllDirectoriesForAdmin = async (req, res) => {
     const directories = await prisma.supplierDirectory.findMany({
       orderBy: { createdAt: "desc" },
       include: {
-        company: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
-        },
-        submittedBy: {
-          select: {
-            id: true,
-            email: true,
-            username: true,
-          },
-        },
-        approvedBy: {
-          select: {
-            id: true,
-            email: true,
-          },
-        },
+        company: { select: { id: true, name: true, slug: true } },
+        submittedBy: { select: { id: true, email: true, username: true } },
+        approvedBy: { select: { id: true, email: true } },
       },
     })
 
@@ -330,16 +330,16 @@ export const getAllDirectoriesForAdmin = async (req, res) => {
   }
 }
 
-
+/**
+ * Track directory connection click
+ */
 export const trackDirectoryConnection = async (req, res) => {
   try {
     const { id } = req.params
 
     await prisma.supplierDirectory.update({
       where: { id: Number(id) },
-      data: {
-        connections: { increment: 1 },
-      },
+      data: { connections: { increment: 1 } },
     })
 
     res.json({ success: true })
