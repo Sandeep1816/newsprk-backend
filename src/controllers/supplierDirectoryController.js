@@ -3,6 +3,37 @@ import prisma from "../prismaClient.js"
 /**
  * Recruiter submits directory (FIRST TIME)
  */
+// export const createDirectory = async (req, res) => {
+//   try {
+//     const user = req.user
+
+//     if (user.role !== "recruiter") {
+//       return res.status(403).json({ error: "Only recruiters can submit directories" })
+//     }
+
+//     const {
+//       name, slug, description, website, logoUrl, coverImageUrl,
+//       phoneNumber, email, tradeNames, videoGallery, socialLinks, productSupplies,
+//     } = req.body
+
+//     const directory = await prisma.supplierDirectory.create({
+//       data: {
+//         name, slug, description, website, logoUrl, coverImageUrl,
+//         phoneNumber, email, tradeNames, videoGallery, socialLinks, productSupplies,
+//         companyId: user.companyId,
+//         status: "PENDING",
+//         isLiveEditable: false,
+//         submittedById: user.id,
+//       },
+//     })
+
+//     res.status(201).json(directory)
+//   } catch (err) {
+//     console.error("Create directory error:", err)
+//     res.status(500).json({ error: "Failed to create directory" })
+//   }
+// }
+
 export const createDirectory = async (req, res) => {
   try {
     const user = req.user
@@ -12,14 +43,75 @@ export const createDirectory = async (req, res) => {
     }
 
     const {
-      name, slug, description, website, logoUrl, coverImageUrl,
-      phoneNumber, email, tradeNames, videoGallery, socialLinks, productSupplies,
+      name,
+      slug,
+      description,
+      website,
+      logoUrl,
+      coverImageUrl,
+      phoneNumber,
+      email,
+      tradeNames,
+      videoGallery,
+      socialLinks,
+      productSupplies,
+
+      // ✅ NEW FIELDS
+      location,
+      address,
+      industryId,
     } = req.body
 
+    /* ==============================
+       1️⃣ Validate required fields
+    ============================== */
+    if (!location || !address || !industryId) {
+      return res.status(400).json({
+        error: "Location, address and industry are required",
+      })
+    }
+
+    /* ==============================
+       2️⃣ Validate Industry Exists
+    ============================== */
+    const industry = await prisma.industry.findUnique({
+      where: { id: Number(industryId) },
+    })
+
+    if (!industry) {
+      return res.status(400).json({ error: "Invalid industry selected" })
+    }
+
+    /* ==============================
+       3️⃣ Update Company Info
+    ============================== */
+    await prisma.company.update({
+      where: { id: user.companyId },
+      data: {
+        location,
+        address,
+        industryId: Number(industryId),
+      },
+    })
+
+    /* ==============================
+       4️⃣ Create Directory
+    ============================== */
     const directory = await prisma.supplierDirectory.create({
       data: {
-        name, slug, description, website, logoUrl, coverImageUrl,
-        phoneNumber, email, tradeNames, videoGallery, socialLinks, productSupplies,
+        name,
+        slug,
+        description,
+        website,
+        logoUrl,
+        coverImageUrl,
+        phoneNumber,
+        email,
+        tradeNames,
+        videoGallery,
+        socialLinks,
+        productSupplies,
+
         companyId: user.companyId,
         status: "PENDING",
         isLiveEditable: false,
@@ -28,6 +120,7 @@ export const createDirectory = async (req, res) => {
     })
 
     res.status(201).json(directory)
+
   } catch (err) {
     console.error("Create directory error:", err)
     res.status(500).json({ error: "Failed to create directory" })
