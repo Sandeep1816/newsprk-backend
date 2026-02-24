@@ -147,6 +147,23 @@ app.get("/", (req, res) => {
 });
 
 /* ==========================
+   💚 Health Check Route
+========================== */
+
+app.get("/health", async (req, res) => {
+  try {
+    res.status(200).json({
+      status: "ok",
+      uptime: process.uptime(),
+      memoryUsage: process.memoryUsage().rss,
+      timestamp: new Date(),
+    });
+  } catch (err) {
+    res.status(500).json({ status: "error" });
+  }
+});
+
+/* ==========================
    🔗 API Routes
 ========================== */
 
