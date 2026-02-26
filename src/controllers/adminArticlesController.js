@@ -62,13 +62,29 @@ export const approveArticle = async (req, res) => {
     const adminId = req.user.userId
     const postId = Number(req.params.id)
 
+    // 1️⃣ Check if post exists and is pending
+    const existingPost = await prisma.post.findUnique({
+      where: { id: postId },
+    })
+
+    if (!existingPost) {
+      return res.status(404).json({ error: "Article not found" })
+    }
+
+    if (existingPost.status !== "PENDING") {
+      return res.status(400).json({
+        error: "Only pending articles can be approved",
+      })
+    }
+
+    // 2️⃣ Approve
     const post = await prisma.post.update({
       where: { id: postId },
       data: {
         status: "APPROVED",
         approvedById: adminId,
         approvedAt: new Date(),
-        publishedAt: new Date(), // ✅ NOW it becomes public
+        publishedAt: new Date(),
       },
     })
 
@@ -85,6 +101,20 @@ export const approveArticle = async (req, res) => {
 export const rejectArticle = async (req, res) => {
   try {
     const postId = Number(req.params.id)
+
+    const existingPost = await prisma.post.findUnique({
+      where: { id: postId },
+    })
+
+    if (!existingPost) {
+      return res.status(404).json({ error: "Article not found" })
+    }
+
+    if (existingPost.status !== "PENDING") {
+      return res.status(400).json({
+        error: "Only pending articles can be rejected",
+      })
+    }
 
     await prisma.post.update({
       where: { id: postId },
