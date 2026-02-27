@@ -208,3 +208,35 @@ export const trackClick = async (req, res) => {
     res.status(500).json({ success: false });
   }
 };
+
+
+/**
+ * GET SINGLE BANNER (ADMIN)
+ */
+export const getBannerById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const banner = await prisma.advertisementBanner.findUnique({
+      where: { id: Number(id) },
+      include: {
+        createdBy: {
+          select: {
+            id: true,
+            email: true,
+            username: true,
+          },
+        },
+      },
+    });
+
+    if (!banner) {
+      return res.status(404).json({ message: "Banner not found" });
+    }
+
+    res.json(banner);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch banner" });
+  }
+};
