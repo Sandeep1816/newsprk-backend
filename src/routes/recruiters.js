@@ -15,7 +15,7 @@ const router = express.Router()
 router.get("/me", requireAuth, getMyRecruiterProfile)
 
 // 📊 Recruiter dashboard
-router.get("/dashboard", requireAuth, getRecruiterDashboard)
+// router.get("/dashboard", requireAuth, getRecruiterDashboard)
 
 // ✅ Admin get all recruiters (MOVE THIS UP)
 router.get("/admin", requireAuth, getAllRecruiters)

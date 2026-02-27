@@ -10,17 +10,26 @@ export async function getRecruiterProfile(req, res) {
     const recruiter = await prisma.user.findUnique({
       where: { username },
       select: {
-        id: true,
-        username: true,
-        fullName: true,
-        headline: true,
-        about: true,
-        location: true,
-        avatarUrl: true,
-        websiteUrl: true,
-        role: true,
-        createdAt: true,
-      },
+  id: true,
+  username: true,
+  fullName: true,
+  headline: true,
+  about: true,
+  location: true,
+  avatarUrl: true,
+  websiteUrl: true,
+  role: true,
+  createdAt: true,
+  company: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      logoUrl: true,
+      isVerified: true,
+    },
+  },
+}
     })
 
     if (!recruiter) {
@@ -56,7 +65,23 @@ export async function getMyRecruiterProfile(req, res) {
         websiteUrl: true,
         role: true,
         createdAt: true,
-        company: true, // optional, useful
+        company: {
+  select: {
+    id: true,
+    name: true,
+    slug: true,
+    tagline: true,
+    description: true,
+    industryId: true,
+    location: true,
+    address: true,
+    companySize: true,
+    website: true,
+    logoUrl: true,
+    coverImageUrl: true,
+    isVerified: true,
+  },
+}
       },
     })
 
@@ -146,9 +171,40 @@ export async function getRecruiterDashboard(req, res) {
 export async function updateRecruiterProfile(req, res) {
   try {
     const userId = req.user.id
-    const { fullName, headline, about, location, websiteUrl, avatarUrl, companyId } = req.body
 
-    const recruiter = await prisma.user.update({
+    const {
+      fullName,
+      headline,
+      about,
+      location,
+      websiteUrl,
+      avatarUrl,
+
+      // company fields
+      companyName,
+      companyTagline,
+      companyDescription,
+      companyIndustryId,
+      companyLocation,
+      companyAddress,
+      companySize,
+      companyWebsite,
+      companyLogoUrl,
+      companyCoverImageUrl,
+    } = req.body
+
+    // 1️⃣ Get recruiter first
+    const recruiter = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { company: true },
+    })
+
+    if (!recruiter) {
+      return res.status(404).json({ error: "User not found" })
+    }
+
+    // 2️⃣ Update User
+    await prisma.user.update({
       where: { id: userId },
       data: {
         fullName,
@@ -156,13 +212,33 @@ export async function updateRecruiterProfile(req, res) {
         about,
         location,
         websiteUrl,
-        avatarUrl,  // ✅ this was missing
-        companyId,
+        avatarUrl,
         isOnboarded: true,
       },
     })
 
-    res.json(recruiter)
+    // 3️⃣ Update Company if exists
+    if (recruiter.companyId) {
+      await prisma.company.update({
+        where: { id: recruiter.companyId },
+        data: {
+          name: companyName,
+          tagline: companyTagline,
+          description: companyDescription,
+          industryId: companyIndustryId
+            ? Number(companyIndustryId)
+            : null,
+          location: companyLocation,
+          address: companyAddress,
+          companySize,
+          website: companyWebsite,
+          logoUrl: companyLogoUrl,
+          coverImageUrl: companyCoverImageUrl,
+        },
+      })
+    }
+
+    res.json({ success: true })
   } catch (err) {
     console.error("Update recruiter profile error:", err)
     res.status(500).json({ error: "Failed to update profile" })
