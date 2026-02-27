@@ -143,12 +143,17 @@ model Job {
   isActive       Boolean @default(true)
   views          Int     @default(0)
 
-  companyId  Int
+   companyName    String?   // Just plain text (Infosys, TCS, etc.)
+  applyUrl       String?
+  linkedinUrl    String?
+  isExternal     Boolean   @default(false)
+
+  companyId  Int?
   postedById Int
 
   createdAt DateTime @default(now())
 
-  company      Company          @relation(fields: [companyId], references: [id])
+  company      Company?          @relation(fields: [companyId], references: [id])
   postedBy     User             @relation(fields: [postedById], references: [id])
   applications JobApplication[]
 }

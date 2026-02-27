@@ -9,15 +9,37 @@ export async function createJob(req, res) {
       return res.status(403).json({ error: "Not allowed" })
     }
 
-    const recruiter = await prisma.user.findUnique({
-      where: { id: req.user.id }, // ✅ FIXED
-      select: { companyId: true },
-    })
+    let companyId = null
+    let companyName = null
+    let isExternal = false
 
-    if (!recruiter?.companyId) {
-      return res.status(400).json({
-        error: "Recruiter is not linked to any company",
+    // 🔹 Recruiter → Internal Job
+    if (req.user.role === "recruiter") {
+      const recruiter = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: { companyId: true },
       })
+
+      if (!recruiter?.companyId) {
+        return res.status(400).json({
+          error: "Recruiter is not linked to any company",
+        })
+      }
+
+      companyId = recruiter.companyId
+      isExternal = false
+    }
+
+    // 🔹 Admin → External Job
+    if (req.user.role === "admin") {
+      companyName = req.body.companyName
+      isExternal = true
+
+      if (!req.body.applyUrl && !req.body.linkedinUrl) {
+        return res.status(400).json({
+          error: "External job must have applyUrl or linkedinUrl",
+        })
+      }
     }
 
     const job = await prisma.job.create({
@@ -30,8 +52,17 @@ export async function createJob(req, res) {
         salaryRange: req.body.salaryRange,
         location: req.body.location,
         isRemote: req.body.isRemote ?? false,
-        companyId: recruiter.companyId,
-        postedById: req.user.id, // ✅ FIXED
+
+        // 🔥 External fields
+        companyName,
+        applyUrl: req.body.applyUrl,
+        linkedinUrl: req.body.linkedinUrl,
+        isExternal,
+
+        // 🔥 Internal relation (only recruiter jobs)
+        companyId,
+
+        postedById: req.user.id,
       },
     })
 
@@ -172,24 +203,24 @@ export async function getRecruiterDashboard(req, res) {
       },
     })
 
-    // 2️⃣ Applications count
-    const applicationsCount = await prisma.application.count({
-      where: {
-        job: {
-          postedById: recruiterId,
-        },
-      },
-    })
+// 2️⃣ Applications count
+const applicationsCount = await prisma.jobApplication.count({
+  where: {
+    job: {
+      postedById: recruiterId,
+    },
+  },
+})
 
-    // 3️⃣ Shortlisted count
-    const shortlistedCount = await prisma.application.count({
-      where: {
-        status: "shortlisted",
-        job: {
-          postedById: recruiterId,
-        },
-      },
-    })
+// 3️⃣ Shortlisted count
+const shortlistedCount = await prisma.jobApplication.count({
+  where: {
+    status: "shortlisted",
+    job: {
+      postedById: recruiterId,
+    },
+  },
+})
 
     // 4️⃣ Recent jobs (last 5)
     const recentJobsRaw = await prisma.job.findMany({

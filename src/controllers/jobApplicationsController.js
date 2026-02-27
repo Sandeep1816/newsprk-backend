@@ -9,10 +9,30 @@ export async function applyJob(req, res) {
       return res.status(403).json({ error: "Only candidates can apply" })
     }
 
+    const job = await prisma.job.findUnique({
+      where: { id: req.body.jobId },
+      select: { id: true, isExternal: true, isActive: true },
+    })
+
+    if (!job) {
+      return res.status(404).json({ error: "Job not found" })
+    }
+
+    if (!job.isActive) {
+      return res.status(400).json({ error: "Job is not active" })
+    }
+
+    // 🔥 BLOCK EXTERNAL JOBS
+    if (job.isExternal) {
+      return res.status(400).json({
+        error: "Please apply through the external website",
+      })
+    }
+
     const application = await prisma.jobApplication.create({
       data: {
         jobId: req.body.jobId,
-        userId: req.user.id,          // ✅ FIX
+        userId: req.user.id,
         resumeUrl: req.body.resumeUrl,
         coverNote: req.body.coverNote,
       },
@@ -119,12 +139,23 @@ export async function updateApplicationStatus(req, res) {
       return res.status(400).json({ error: "Invalid status" })
     }
 
-    const application = await prisma.jobApplication.update({
+    const application = await prisma.jobApplication.findUnique({
+      where: { id: Number(applicationId) },
+      include: {
+        job: true,
+      },
+    })
+
+    if (!application || application.job.postedById !== req.user.id) {
+      return res.status(403).json({ error: "Not authorized" })
+    }
+
+    const updated = await prisma.jobApplication.update({
       where: { id: Number(applicationId) },
       data: { status },
     })
 
-    res.json(application)
+    res.json(updated)
   } catch (err) {
     console.error(err)
     res.status(500).json({ error: "Failed to update status" })
