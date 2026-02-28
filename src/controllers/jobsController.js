@@ -116,10 +116,20 @@ export async function getJobBySlug(req, res) {
   try {
     const job = await prisma.job.findUnique({
       where: { slug: req.params.slug },
-      include: {
-        company: true,
-        postedBy: { select: { id: true, email: true } },
-      },
+    include: {
+  company: {
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      logoUrl: true,
+      description: true,
+    },
+  },
+  postedBy: {
+    select: { id: true, email: true },
+  },
+}
     });
 
     if (!job) {
